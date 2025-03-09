@@ -15,7 +15,6 @@ def create_directories_and_files(base_path):
         "app/src/main/java/com/example/payload/Utils.java",
         "app/src/main/res/layout/activity_main.xml",
         "app/src/main/res/values/strings.xml",
-        "app/src/main/AndroidManifest.xml",
         "build.gradle",
         "settings.gradle"
     ]
