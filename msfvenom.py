@@ -1,40 +1,36 @@
 import os
 
-# Define the folder structure
-folders = [
-    'app/src/main/java/com/example/client',
-    'app/src/main/res/layout',
-    'app/src/main/res/values',
-    'app/src/main/AndroidManifest.xml',
-    'app/build.gradle',
-    'build.gradle'
-]
+def create_directories_and_files(base_path):
+    directories = [
+        "app/src/main/java/com/example/payload",
+        "app/src/main/res/layout",
+        "app/src/main/res/values",
+        "app/src/main/AndroidManifest.xml"
+    ]
 
-# Define the files to be created
-files = [
-    'app/src/main/java/com/example/client/MainActivity.java',
-    'app/src/main/java/com/example/client/CommandHandler.java',
-    'app/src/main/java/com/example/client/ServerConnection.java',
-    'app/src/main/res/layout/activity_main.xml',
-    'app/src/main/res/values/strings.xml',
-    'app/src/main/AndroidManifest.xml',
-    'app/build.gradle',
-    'build.gradle',
-    'settings.gradle'
-]
+    files = [
+        "app/src/main/java/com/example/payload/MainActivity.java",
+        "app/src/main/java/com/example/payload/ClientService.java",
+        "app/src/main/java/com/example/payload/CommandHandler.java",
+        "app/src/main/java/com/example/payload/Utils.java",
+        "app/src/main/res/layout/activity_main.xml",
+        "app/src/main/res/values/strings.xml",
+        "app/src/main/AndroidManifest.xml",
+        "build.gradle",
+        "settings.gradle"
+    ]
 
-def create_folders_and_files():
-    # Create folders
-    for folder in folders:
-        os.makedirs(folder, exist_ok=True)
-        print(f"Created folder: {folder}")
+    for directory in directories:
+        path = os.path.join(base_path, directory)
+        os.makedirs(path, exist_ok=True)
+        print(f"Created directory: {path}")
 
-    # Create files
     for file in files:
-        with open(file, 'w') as f:
+        path = os.path.join(base_path, file)
+        with open(path, 'w') as f:
             pass
-        print(f"Created file: {file}")
+        print(f"Created file: {path}")
 
 if __name__ == "__main__":
-    create_folders_and_files()
-    print("Folder structure and files created successfully.")
+    base_path = "android_payload"
+    create_directories_and_files(base_path)
