@@ -58,7 +58,7 @@ def start_streaming(client_socket, mode, client_id):
                         mimetype='multipart/x-mixed-replace; boundary=frame')
 
      @app.route(f'/stop_streaming_{client_id}')
-    def stop_streaming():
+     def stop_streaming():
         global streaming
         streaming = False
         print(Fore.YELLOW + "[ * ] Stopping streaming...")
