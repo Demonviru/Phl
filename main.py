@@ -249,10 +249,7 @@ def list_webcams():
         else:
             break
         index += 1
-    if not webcams:
-        return "No webcams found."
     return '\n'.join(webcams)
-
 
 # Function to dump the contents of the SAM database (hashdump)
 def hashdump(client_socket):
