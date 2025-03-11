@@ -125,8 +125,8 @@ def reconnect_client(target_ip=None):
     if target_ip == 'all':
         # Reconnect all clients
         print(Fore.GREEN + "[ * ] Reconnecting all clients...")
-        for client_id, client_info in clients.items():
-            client_socket = client_info['socket']
+        for client_id in list(clients.keys()):  # Make a list of the keys to avoid the RuntimeError
+            client_info = clients[client_id]
             target_ip = client_id.split(":")[0]  # Get the IP from the client_id
             reconnect_socket(target_ip)  # Attempt to reconnect the client
     elif target_ip:
