@@ -73,6 +73,7 @@ def start_streaming(client_socket, mode, client_id):
     # Run the Flask app in a separate thread to handle the streaming
     threading.Thread(target=lambda: app.run(host='0.0.0.0', port=5000, use_reloader=False)).start()
 
+
 def generate_frames(client_socket, client_id):
     global streaming
     while streaming:
