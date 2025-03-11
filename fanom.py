@@ -28,9 +28,9 @@ html_template = """
     
     <!-- Description Section -->
     <div>
-      <p><strong>Target IP:</strong> {{ target_ip }}</p>
-      <p><strong>Start Time:</strong> {{ start_time }}</p>
-      <p><strong>Status:</strong> {{ status }}</p>
+      <p><strong>Target IP :</strong> {{ target_ip }}</p>
+      <p><strong>Start Time :</strong> {{ start_time }}</p>
+      <p><strong>Status :</strong> {{ status }}</p>
     </div>
     
     <!-- Video Stream Section -->
