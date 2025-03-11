@@ -21,7 +21,7 @@ def get_default_interface():
     for interface in interfaces:
         # Loop through interfaces and check for IPv4 addresses (this assumes active interfaces)
         for addr in interfaces[interface]:
-            if addr.family == psutil.AF_INET:  # AF_INET is IPv4
+            if addr.family == socket.AF_INET:  # AF_INET is IPv4
                 return interface  # Return the first active interface with an IPv4 address
     return None  # If no interface found
 
