@@ -57,11 +57,19 @@ def start_streaming(client_socket, mode, client_id):
         return Response(generate_frames(client_socket, client_id),
                         mimetype='multipart/x-mixed-replace; boundary=frame')
 
-    @app.route(f'/stop_streaming_{client_id}')
-    def stop_streaming():
-        global streaming
-        streaming = False
-        return "Streaming stopped", 200
+    def stop_streaming(client_id):
+    # Stop the stream for the specific client
+    print(Fore.RED + f"[ * ] Stopping stream for client {client_id}")
+    clients[client_id]['streaming'] = False  # Stop the server-side stream
+
+    # Send a command to the client to stop its stream
+    try:
+        client_socket = clients[client_id]['socket']
+        stop_command = "stop_stream"
+        client_socket.send(stop_command.encode('utf-8'))  # Instruct client to stop streaming
+    except KeyError:
+        print(Fore.RED + f"[ * ] Client {client_id} not found.")
+
 
     print(Fore.BLUE + f"[ * ] Opening player at: http://localhost:5000")
     print(Fore.BLUE + "[ * ] Streaming...")
