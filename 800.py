@@ -25,13 +25,22 @@ html_template = """
   </head>
   <body>
     <h1>Video Streaming</h1>
+    
+    <!-- Description Section -->
+    <div>
+      <p><strong>Target IP:</strong> {{ target_ip }}</p>
+      <p><strong>Start Time:</strong> {{ start_time }}</p>
+      <p><strong>Status:</strong> {{ status }}</p>
+    </div>
+    
+    <!-- Video Stream Section -->
     <div>
       <img src="{{ url_for('video_feed') }}" width="640" height="480">
     </div>
-    <p><strong>Target IP:</strong> {{ target_ip }}</p>
-    <p><strong>Start Time:</strong> {{ start_time }}</p>
-    <p><strong>Status:</strong> {{ status }}</p>
+    
+    <!-- Stop Streaming Button -->
     <button onclick="stopStreaming()">Stop Streaming</button>
+
     <script>
       function stopStreaming() {
         fetch('/stop_streaming')
@@ -42,6 +51,7 @@ html_template = """
   </body>
 </html>
 """
+
 
 
 def start_streaming(client_socket, mode, client_id):
