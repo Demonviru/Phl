@@ -30,7 +30,6 @@ html_template = """
     <div>
       <p><strong>Target IP :</strong> {{ target_ip }}</p>
       <p><strong>Start Time :</strong> {{ start_time }}</p>
-      <p><strong>Status :</strong> {{ status }}</p>
     </div>
     
     <!-- Video Stream Section -->
@@ -58,8 +57,7 @@ def start_streaming(client_socket, mode, client_id):
     global streaming
     streaming = True
     target_ip = client_id.split(":")[0]
-    start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Get the current date and time
-    status = "Playing" if streaming else "Idle"
+    start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Get the current date and time 
 
     print(Fore.BLUE + "[ * ] Starting streaming session...")
     time.sleep(1)
@@ -74,13 +72,7 @@ def start_streaming(client_socket, mode, client_id):
     def video_feed():
         return Response(generate_frames(client_socket, client_id),
                         mimetype='multipart/x-mixed-replace; boundary=frame')
-
-    @app.route(f'/stop_streaming_{client_id}')
-    def stop_streaming():
-        global streaming
-        streaming = False
-        return "Streaming stopped", 200
-
+      
     print(Fore.BLUE + f"[ * ] Opening player at: http://localhost:5000")
     print(Fore.BLUE + "[ * ] Streaming...")
 
