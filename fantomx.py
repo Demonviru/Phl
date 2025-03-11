@@ -6,6 +6,7 @@ from colorama import Fore, init
 import cv2
 import numpy as np
 import keyboard  # Import the keyboard library
+import signal
 
 init(autoreset=True)
 
@@ -52,6 +53,12 @@ def start_streaming(client_socket, mode, client_id):
     def index():
         return render_template_string(html_template)
 
+    def shutdown_server():
+    func = request.environ.get('werkzeug.server.shutdown')
+    if func is None:
+        os._exit(0)  # Nouzové vypnutí, pokud nelze použít shutdown
+    func()
+  
     @app.route(f'/video_feed_{client_id}')
     def video_feed():
         return Response(generate_frames(client_socket, client_id),
@@ -60,6 +67,7 @@ def start_streaming(client_socket, mode, client_id):
      @app.route(f'/stop_streaming_{client_id}')
      def stop_streaming():
         global streaming
+        shutdown_server()
         streaming = False
         print(Fore.YELLOW + "[ * ] Stopping streaming...")
         
