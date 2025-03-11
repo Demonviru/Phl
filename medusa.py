@@ -153,7 +153,6 @@ def handle_client(client_socket, addr):
             continue
 
        elif command.startswith("webcam_stream") or command.startswith("screenshare"):
-            mode = command.split('_')[0]
             start_streaming(client_socket, mode)
             continue
         
