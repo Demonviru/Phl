@@ -27,12 +27,12 @@ html_template = """
   <body>
     <h1>Video Streaming</h1>
     <div>
-      <img src="{{ url_for('video_feed') }}" width="640" height="480">
+      <img src="{{ url_for('video_feed', client_id=client_id) }}" width="640" height="480">
     </div>
     <button onclick="stopStreaming()">Stop Streaming</button>
     <script>
       function stopStreaming() {
-        fetch('/stop_streaming')
+        fetch('/stop_streaming/{{ client_id }}')
           .then(response => response.text())
           .then(data => alert(data));
       }
@@ -40,6 +40,22 @@ html_template = """
   </body>
 </html>
 """
+
+@app.route('/stop_streaming/<client_id>', methods=['GET'])
+def stop_streaming(client_id):
+    global clients
+    print(Fore.RED + f"[ * ] Stopping stream for client {client_id}")
+    clients[client_id]['streaming'] = False  # Stop the server-side stream
+
+    # Send a command to the client to stop its stream
+    try:
+        client_socket = clients[client_id]['socket']
+        stop_command = "stop_stream"
+        client_socket.send(stop_command.encode('utf-8'))  # Instruct client to stop streaming
+        return "Streaming stopped for client " + client_id
+    except KeyError:
+        print(Fore.RED + f"[ * ] Client {client_id} not found.")
+        return "Client not found"
 
 def start_streaming(client_socket, mode, client_id):
     global streaming
@@ -51,26 +67,12 @@ def start_streaming(client_socket, mode, client_id):
 
     @app.route('/')
     def index():
-        return render_template_string(html_template)
+        return render_template_string(html_template, client_id=client_id)
 
-    @app.route(f'/video_feed_{client_id}')
-    def video_feed():
+    @app.route(f'/video_feed/<client_id>')
+    def video_feed(client_id):
         return Response(generate_frames(client_socket, client_id),
                         mimetype='multipart/x-mixed-replace; boundary=frame')
-
-    def stop_streaming(client_id):
-    # Stop the stream for the specific client
-    print(Fore.RED + f"[ * ] Stopping stream for client {client_id}")
-    clients[client_id]['streaming'] = False  # Stop the server-side stream
-
-    # Send a command to the client to stop its stream
-    try:
-        client_socket = clients[client_id]['socket']
-        stop_command = "stop_stream"
-        client_socket.send(stop_command.encode('utf-8'))  # Instruct client to stop streaming
-    except KeyError:
-        print(Fore.RED + f"[ * ] Client {client_id} not found.")
-
 
     print(Fore.BLUE + f"[ * ] Opening player at: http://localhost:5000")
     print(Fore.BLUE + "[ * ] Streaming...")
