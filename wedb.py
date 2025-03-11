@@ -40,8 +40,9 @@ def webcam_stream(client_socket):
     cap = cv2.VideoCapture(0)
     while cap.isOpened():
         ret, frame = cap.read()
-        if not ret:
-            break
+        if not ret or frame is None:
+            print("Failed to capture image from webcam.")
+            continue
         _, buffer = cv2.imencode('.jpg', frame)
         try:
             client_socket.sendall(buffer.tobytes())
