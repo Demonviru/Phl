@@ -56,7 +56,7 @@ def start_streaming(client_socket, mode, client_id):
 
     @app.route('/')
     def index():
-        return render_template_string(html_template, target_ip=target_ip, start_time=start_time, status=status)
+        return render_template_string(html_template, target_ip=target_ip, start_time=start_time)
 
     @app.route(f'/video_feed_{client_id}')
     def video_feed():
