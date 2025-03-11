@@ -57,14 +57,14 @@ def start_streaming(client_socket, mode, client_id):
         return Response(generate_frames(client_socket, client_id),
                         mimetype='multipart/x-mixed-replace; boundary=frame')
 
-    @app.route(f'/stop_streaming_{client_id}', methods=['POST'])
+    @app.route(f'/stop_streaming_{client_id}', methods=['GET', 'POST'])
     def stop_streaming_route():
         global streaming
         streaming = False
         stop_flask()
         return "Streaming stopped", 200
 
-    print(Fore.BLUE + f"[ * ] Opening player at: http://localhost:5000")
+    print(Fore.BLUE + f"[ * ] Opening player at: http://127.0.0.1:5000")
     print(Fore.BLUE + "[ * ] Streaming...")
 
     # Run the Flask app in a separate thread to handle the streaming
