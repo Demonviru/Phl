@@ -1,7 +1,7 @@
 import socket
 import threading
 import time
-from flask import Flask, Response, render_template_string
+from flask import Flask, Response, render_template_string, request
 from colorama import Fore, init
 import cv2
 import numpy as np
