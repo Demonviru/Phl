@@ -35,17 +35,6 @@ html_template = """
     <!-- Video Stream Section -->
     <div>
       <img src="{{ url_for('video_feed') }}" width="640" height="480">
-    </div>
-    
-    <!-- Stop Streaming Button -->
-    <button onclick="stopStreaming()">Stop Streaming</button>
-
-    <script>
-      function stopStreaming() {
-        fetch('/stop_streaming')
-          .then(response => response.text())
-          .then(data => alert(data));
-      }
     </script>
   </body>
 </html>
