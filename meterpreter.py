@@ -66,6 +66,10 @@ def start_streaming(client_socket, mode, client_id):
         global streaming
         streaming = False
         print(Fore.RED + "[ * ] Stopping streaming...")
+        try:
+            client_socket.close()
+        except Exception as e:
+            print(Fore.RED + f"[ * ] Error closing client socket: {e}")
         return redirect(url_for('index'))
 
     print(Fore.BLUE + f"[ * ] Opening player at: http://localhost:5000")
