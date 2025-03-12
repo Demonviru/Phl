@@ -95,7 +95,7 @@ class ObsidianScript:
             print(f"Variable {var_name} not found")
 
     def execute(self, file_path):
-        if file_path.endswith('.osd'):
+        if file_path.endswith('.hy'):
             self.run_script(file_path)
         else:
             print(f"File type for {file_path} not supported")
