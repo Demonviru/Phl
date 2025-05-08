@@ -19,6 +19,14 @@ std::vector<unsigned char> deriveKey(const unsigned char* sharedSecret, size_t s
     return derivedKey;
 }
 
+std::vector<unsigned char> xordeobfucate(const std::vector<unsigned char>& obfuscatedData, const std::vector<unsigned char>& key) {
+    std::vector<unsigned char> decryptedData(obfuscatedData.size());
+    for (size_t i = 0; i < obfuscatedData.size(); ++i) {
+        decryptedData[i] = obfuscatedData[i] ^ key[i % key.size()];
+    }
+    return decryptedData;
+}
+
 // Verify the message signature using RSA-2048
 bool verysignature(const std::vector<unsigned char>& message, const std::vector<unsigned char>& signature, EVP_PKEY* publicKey) {
     EVP_MD_CTX* mdCtx = EVP_MD_CTX_new();
