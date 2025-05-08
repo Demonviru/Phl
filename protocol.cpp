@@ -180,37 +180,3 @@ std::vector<unsigned char> xorObfuscate(const std::vector<unsigned char>& data, 
     return obfuscated;
 }
 
-// Main Function
-int main() {
-    // Generate key pairs for two parties (Alice and Bob)
-    EVP_PKEY* aliceKeyPair = generateKeyPair();
-    EVP_PKEY* bobKeyPair = generateKeyPair();
-
-    // Compute shared secrets
-    auto aliceSharedSecret = computeSharedSecret(aliceKeyPair, bobKeyPair);
-    auto bobSharedSecret = computeSharedSecret(bobKeyPair, aliceKeyPair);
-
-    // Derive session keys
-    auto aliceDerivedKey = deriveKey(aliceSharedSecret.data(), aliceSharedSecret.size());
-    auto bobDerivedKey = deriveKey(bobSharedSecret.data(), bobSharedSecret.size());
-
-    // Example message
-    std::string message = "Hello, secure world!";
-    std::vector<unsigned char> plaintext(message.begin(), message.end());
-
-    // Encrypt the message
-    auto ciphertext = encrypt(plaintext, aliceDerivedKey);
-
-    // Decrypt the message
-    auto decryptedText = decrypt(ciphertext, bobDerivedKey);
-
-    // Display results
-    std::cout << "Original Message: " << message << std::endl;
-    std::cout << "Decrypted Message: " << std::string(decryptedText.begin(), decryptedText.end()) << std::endl;
-
-    // Cleanup
-    EVP_PKEY_free(aliceKeyPair);
-    EVP_PKEY_free(bobKeyPair);
-
-    return 0;
-}
