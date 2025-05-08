@@ -19,6 +19,20 @@ std::vector<unsigned char> deriveKey(const unsigned char* sharedSecret, size_t s
     return derivedKey;
 }
 
+// Verify the message signature using RSA-2048
+bool verysignature(const std::vector<unsigned char>& message, const std::vector<unsigned char>& signature, EVP_PKEY* publicKey) {
+    EVP_MD_CTX* mdCtx = EVP_MD_CTX_new();
+    EVP_PKEY_CTX* pkeyCtx = NULL;
+
+    EVP_DigestVerifyInit(mdCtx, &pkeyCtx, EVP_sha256(), NULL, publicKey);
+    EVP_DigestVerifyUpdate(mdCtx, message.data(), message.size());
+    int result = EVP_DigestVerifyFinal(mdCtx, signature.data(), signature.size());
+
+    EVP_MD_CTX_free(mdCtx);
+
+    return (result == 1); // 1 indicates successful verification
+}
+
 // Generate an EC key pair
 EVP_PKEY* generateKeyPair() {
     EVP_PKEY_CTX* paramCtx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, NULL);
