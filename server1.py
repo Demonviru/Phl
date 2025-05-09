@@ -1,41 +1,54 @@
 import socket
 import threading
 
-def server(host='127.0.0.1', port=5222):
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind((host, port))
-    server_socket.listen(2)
-    print(f"Server listening on {host}:{port}...")
-
-    clients = []
-
-    while len(clients) < 2:
-        conn, addr = server_socket.accept()
-        print(f"Connection from {addr}")
-        clients.append(conn)
-
-    print("Both clients connected. Facilitating key exchange...")
-
-    # Relay keys between two clients
-    client1, client2 = clients
-    threading.Thread(target=relay_keys, args=(client1, client2)).start()
-    threading.Thread(target=relay_keys, args=(client2, client1)).start()
+# Constants
+HOST = '127.0.0.1'  # Localhost
+PORT = 65432        # Port to listen on
 
 
-def relay_keys(sender, receiver):
+def relay_messages(client_1, client_2):
+    """
+    Relay messages between two clients.
+    """
     try:
+        # Relay messages between the two clients
         while True:
-            data = sender.recv(1024)
+            # Receive data from Client 1 and send to Client 2
+            data = client_1.recv(1024)
             if not data:
                 break
-            receiver.send(data)
+            client_2.send(data)
+
+            # Receive data from Client 2 and send to Client 1
+            data = client_2.recv(1024)
+            if not data:
+                break
+            client_1.send(data)
     except Exception as e:
-        print(f"Connection error: {e}")
+        print(f"Error relaying messages: {e}")
     finally:
-        sender.close()
-        receiver.close()
-        print("Connection closed.")
+        client_1.close()
+        client_2.close()
+
+
+def main():
+    """
+    Main server to relay messages between two clients.
+    """
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
+        server_socket.bind((HOST, PORT))
+        server_socket.listen(2)
+        print("Server is listening for two clients...")
+
+        # Accept two client connections
+        client_1, addr_1 = server_socket.accept()
+        print(f"Client 1 connected from {addr_1}")
+        client_2, addr_2 = server_socket.accept()
+        print(f"Client 2 connected from {addr_2}")
+
+        # Start relaying messages between the two clients
+        relay_messages(client_1, client_2)
 
 
 if __name__ == "__main__":
-    server()
+    main()
