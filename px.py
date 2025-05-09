@@ -279,11 +279,12 @@ class AESModeOfOperationCBC(AES):
 def pad(s, block_size=16):
     """
     Pad a byte string to proper block size by appending null bytes
-
     """
-    padding = (block_size - len(bytes(s, 'utf-8')) % block_size) * chr(0) if sys.version_info[0] > 2 else (block_size - len(bytes(s)) % block_size) * chr(0)
+    if not isinstance(s, str):
+        s = str(s, 'utf-8') if isinstance(s, bytes) else str(s)
+    padding = (block_size - len(s.encode('utf-8')) % block_size) * chr(0)
     return s + padding
-
+    
 def long_to_bytes(n, blocksize=0):
     """
     Convert an integer to a byte string.
