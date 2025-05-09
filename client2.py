@@ -1,17 +1,24 @@
 import socket
 from px import diffiehellman
 
-def client(server_host='127.0.0.1', server_port=5000):
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect((server_host, server_port))
-    print("Client 1: Connected to server. Starting key exchange...")
+# Constants
+HOST = '127.0.0.1'  # Server address
+PORT = 65432        # Server port
 
-    # Perform Diffie-Hellman key exchange
-    shared_key = diffiehellman(client_socket)
-    print(f"Client 1: Shared key established: {shared_key.hex()}")
 
-    client_socket.close()
+def main(name):
+    """
+    Client that connects to the server and performs a Diffie-Hellman key exchange.
+    """
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+        client_socket.connect((HOST, PORT))
+        print(f"{name} connected to the server")
+
+        # Perform Diffie-Hellman key exchange
+        shared_key = diffiehellman(client_socket)
+        print(f"{name}'s shared key: {shared_key.hex()}")
 
 
 if __name__ == "__main__":
-    client()
+    # Change the name to "Alice" or "Bob" when running the script
+    main("Client")
